@@ -1,0 +1,773 @@
+<Window x:Class="DatabaseMigrationTool.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:DatabaseMigrationTool"
+        mc:Ignorable="d"
+        Title="Database Migration Tool" Height="800" Width="1200" WindowStartupLocation="CenterScreen" MinWidth="1000" MinHeight="600"
+        Icon="app-icon.png">
+
+    <Window.Resources>
+        <!-- Modern Color Palette -->
+        <SolidColorBrush x:Key="PrimaryBrush" Color="#2563EB"/>
+        <SolidColorBrush x:Key="SecondaryBrush" Color="#64748B"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#10B981"/>
+        <SolidColorBrush x:Key="BackgroundBrush" Color="#F8FAFC"/>
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="#E2E8F0"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#1E293B"/>
+        <SolidColorBrush x:Key="MutedTextBrush" Color="#64748B"/>
+        <SolidColorBrush x:Key="DangerBrush" Color="#EF4444"/>
+
+        <!-- Modern Button Style -->
+        <Style x:Key="ModernButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="Margin" Value="6"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="MinHeight" Value="36"/>
+            <Setter Property="MinWidth" Value="100"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="8" 
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"
+                                            TextBlock.FontWeight="{TemplateBinding FontWeight}"
+                                            TextBlock.FontSize="{TemplateBinding FontSize}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#1D4ED8"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#1E40AF"/>
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#94A3B8"/>
+                                <Setter Property="Foreground" Value="#CBD5E1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Secondary Button Style -->
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+            <Setter Property="Background" Value="{StaticResource SecondaryBrush}"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#475569"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Success Button Style -->
+        <Style x:Key="SuccessButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#059669"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Modern Card Style - Optimized for Performance -->
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Margin" Value="8"/>
+            <!-- Removed heavy drop shadow for better performance -->
+        </Style>
+
+        <!-- Modern GroupBox Style -->
+        <Style TargetType="GroupBox">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GroupBox">
+                        <Border Style="{StaticResource Card}" Padding="16">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="{TemplateBinding Header}" 
+                                          FontSize="16" 
+                                          FontWeight="SemiBold" 
+                                          Foreground="{StaticResource TextBrush}"
+                                          Margin="0,0,0,12"/>
+                                <ContentPresenter Grid.Row="1"/>
+                            </Grid>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern TextBox Style -->
+        <Style TargetType="TextBox">
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="0,4"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="6">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern PasswordBox Style -->
+        <Style TargetType="PasswordBox">
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="0,4"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="PasswordBox">
+                        <Border Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="6">
+                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Modern ComboBox Style -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="0,4"/>
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+        </Style>
+
+        <!-- Modern CheckBox Style -->
+        <Style TargetType="CheckBox">
+            <Setter Property="Margin" Value="0,8"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Modern Label Style -->
+        <Style TargetType="Label">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+        </Style>
+
+        <!-- Simple DataGrid Style with Stripes -->
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="RowBackground" Value="White"/>
+            <Setter Property="AlternatingRowBackground" Value="#F9FAFB"/>
+            <Setter Property="GridLinesVisibility" Value="None"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="CanUserDeleteRows" Value="False"/>
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="SelectionMode" Value="Single"/>
+            <Setter Property="RowHeight" Value="32"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <!-- Simple DataGrid Column Header Style -->
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#F3F4F6"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Enhanced DataGrid Row Style for Easy Selection -->
+        <Style TargetType="DataGridRow">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Height" Value="36"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#E3F2FD"/>
+                    <Setter Property="FontWeight" Value="Medium"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#BBDEFB"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                </Trigger>
+                <MultiTrigger>
+                    <MultiTrigger.Conditions>
+                        <Condition Property="IsSelected" Value="True"/>
+                        <Condition Property="IsMouseOver" Value="True"/>
+                    </MultiTrigger.Conditions>
+                    <Setter Property="Background" Value="#90CAF9"/>
+                </MultiTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Simple DataGrid Cell Style -->
+        <Style TargetType="DataGridCell">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="Foreground" Value="#374151"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Remove underlines from DataGrid text -->
+        <Style TargetType="TextBlock" x:Key="NoUnderlineText">
+            <Setter Property="TextDecorations" Value="None"/>
+        </Style>
+
+    </Window.Resources>
+
+    <Grid Background="{StaticResource BackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="200"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header Bar -->
+        <Border Grid.Row="0" Background="{StaticResource PrimaryBrush}" Padding="24,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Database Migration Tool" 
+                              FontSize="24" 
+                              FontWeight="Bold" 
+                              Foreground="White"/>
+                    <TextBlock Text="Migrate stored procedures between SQL Server databases" 
+                              FontSize="14" 
+                              Foreground="#E2E8F0" 
+                              Margin="0,4,0,0"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <TextBlock Name="lblStatus" 
+                              Text="Ready" 
+                              FontSize="14" 
+                              Foreground="White" 
+                              VerticalAlignment="Center"
+                              Margin="0,0,16,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+            <StackPanel Margin="16" MaxWidth="1200">
+
+                
+                <!-- Step 1: Server Connection -->
+                <GroupBox Header="🌐 Server Connection" Margin="0,0,0,16">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Label Grid.Row="0" Content="Server Name"/>
+                            <ComboBox Grid.Row="1" Name="cmbServer" IsEditable="True" 
+                                 SelectionChanged="Server_SelectionChanged"/>
+
+                            <CheckBox Grid.Row="2" Name="chkWindowsAuth" Content="Use Windows Authentication" 
+                                 IsChecked="True" Checked="WindowsAuth_Changed" Unchecked="WindowsAuth_Changed"/>
+
+                            <Grid Grid.Row="3" Name="sqlAuthPanel" Visibility="Collapsed" Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <!-- Username Section -->
+                                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,8,0">
+                                    <Label Content="👤 Username" FontWeight="SemiBold" 
+                                          Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,4"/>
+                                    <TextBox Name="txtUsername" 
+                                            Padding="4" 
+                                            FontSize="14"
+                                            Background="{StaticResource SurfaceBrush}"
+                                            BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="2"
+                                            ToolTip="Enter your SQL Server username"/>
+                                </StackPanel>
+
+                                <!-- Password Section -->
+                                <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,0,0,0">
+                                    <Label Content="🔒 Password" FontWeight="SemiBold" 
+                                          Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,4"/>
+                                    <PasswordBox Name="txtPassword" 
+                                               Padding="4" 
+                                               FontSize="14"
+                                               Background="{StaticResource SurfaceBrush}"
+                                               BorderBrush="{StaticResource BorderBrush}"
+                                               BorderThickness="2"
+                                               ToolTip="Enter your SQL Server password"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+                                <Button Name="btnTestConnection" Content="Test Connection" 
+                                   Style="{StaticResource SecondaryButton}" Click="TestConnection_Click"/>
+                                <Button Name="btnRefreshDatabases" Content="Load Databases" 
+                                   Style="{StaticResource ModernButton}" Click="RefreshDatabases_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- Source Database -->
+                    <GroupBox Header="📂 Source Database" Margin="0,16,0,0">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <Label Grid.Row="0" Content="Select Database"/>
+                            <ComboBox Grid.Row="1" Name="cmbSourceDatabase" 
+                                 SelectionChanged="SourceDatabase_SelectionChanged"/>
+
+                            <Button Grid.Row="2" Name="btnLoadProcedures" Content="Load Database Objects" 
+                               Style="{StaticResource SuccessButton}" 
+                               Click="LoadStoredProcedures_Click" 
+                               Margin="0,12,0,0"/>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- Database Objects -->
+                    <GroupBox Header="� Database Objects" Margin="0,16,0,0">
+                        <TabControl Name="tabDatabaseObjects" SelectionChanged="TabDatabaseObjects_SelectionChanged">
+                            <!-- Stored Procedures Tab -->
+                            <TabItem Header="📋 Stored Procedures">
+                                <Grid Margin="8">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBox Grid.Row="0" Name="txtSearchProcedures" 
+                                        TextChanged="SearchProcedures_TextChanged"
+                                        Tag="Search procedures..."/>
+
+                                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8" HorizontalAlignment="Left">
+                                        <CheckBox Name="chkSelectAll" 
+                                                 Content="✓ Select All" 
+                                                 Checked="SelectAll_Checked" 
+                                                 Unchecked="SelectAll_Unchecked"
+                                                 FontWeight="SemiBold"
+                                                 Foreground="#1976D2"
+                                                 Margin="0,0,12,0"/>
+                                        <Button Content="Clear All" 
+                                               Click="ClearAll_Click"
+                                               Style="{StaticResource ModernButton}"
+                                               Background="#FF5722"
+                                               FontSize="11"
+                                               Padding="8,4"
+                                               Margin="0,0,8,0"/>
+                                        <TextBlock Name="txtProcedureCount" 
+                                                  Text="0 procedures" 
+                                                  Margin="12,0,0,0" 
+                                                  Foreground="{StaticResource MutedTextBrush}"
+                                                  VerticalAlignment="Center"
+                                                  FontWeight="Medium"/>
+                                        <TextBlock Name="txtSelectedProceduresCount" 
+                                                  Text="0 selected" 
+                                                  Margin="16,0,0,0" 
+                                                  Foreground="{StaticResource PrimaryBrush}"
+                                                  VerticalAlignment="Center"
+                                                  FontWeight="Medium"/>
+                                    </StackPanel>
+
+                                    <ListBox Grid.Row="2" Name="lstStoredProcedures" 
+                                        SelectionMode="Extended" 
+                                        MinHeight="200"
+                                        MaxHeight="400"
+                                        Background="{StaticResource SurfaceBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        ScrollViewer.CanContentScroll="True"
+                                        VirtualizingPanel.IsVirtualizing="True"
+                                        VirtualizingPanel.VirtualizationMode="Recycling">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                        <CheckBox Content="{Binding FullName}" 
+                                             IsChecked="{Binding IsSelected}" 
+                                             Tag="{Binding}" 
+                                             Checked="ProcedureCheckBox_Changed" 
+                                             Unchecked="ProcedureCheckBox_Changed"
+                                             Margin="6,4"
+                                            />
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+                    </TabItem>
+
+                    <!-- Tables Tab -->
+                    <TabItem Header="🗂️ Tables">
+                        <Grid Margin="8">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBox Grid.Row="0" Name="txtSearchTables" 
+                                TextChanged="SearchTables_TextChanged"
+                                Tag="Search tables..."/>
+
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8" HorizontalAlignment="Left">
+                                <CheckBox Name="chkSelectAllTables" 
+                                         Content="✓ Select All" 
+                                         Checked="SelectAllTables_Checked" 
+                                         Unchecked="SelectAllTables_Unchecked"
+                                         FontWeight="SemiBold"
+                                         Foreground="#1976D2"
+                                         Margin="0,0,12,0"/>
+                                <Button Content="Clear All" 
+                                       Click="ClearAllTables_Click"
+                                       Style="{StaticResource ModernButton}"
+                                       Background="#FF5722"
+                                       FontSize="11"
+                                       Padding="8,4"
+                                       Margin="0,0,8,0"/>
+                                <TextBlock Name="txtTableCount" 
+                                          Text="0 tables" 
+                                          Margin="12,0,0,0" 
+                                          Foreground="{StaticResource MutedTextBrush}"
+                                          VerticalAlignment="Center"
+                                          FontWeight="Medium"/>
+                                <TextBlock Name="txtSelectedTablesCount" 
+                                          Text="0 selected" 
+                                          Margin="16,0,0,0" 
+                                          Foreground="{StaticResource PrimaryBrush}"
+                                          VerticalAlignment="Center"
+                                          FontWeight="Medium"/>
+                            </StackPanel>
+
+                            <ListBox Grid.Row="2" Name="lstTables" 
+                                SelectionMode="Extended" 
+                                MinHeight="200"
+                                MaxHeight="400"
+                                Background="{StaticResource SurfaceBrush}"
+                                BorderBrush="{StaticResource BorderBrush}"
+                                BorderThickness="1"
+                                ScrollViewer.CanContentScroll="True"
+                                VirtualizingPanel.IsVirtualizing="True"
+                                VirtualizingPanel.VirtualizationMode="Recycling">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox Content="{Binding FullName}" 
+                                             IsChecked="{Binding IsSelected}" 
+                                             Tag="{Binding}" 
+                                             Checked="TableCheckBox_Changed" 
+                                             Unchecked="TableCheckBox_Changed"
+                                             Margin="6,4"
+                                            />
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Grid>
+                    </TabItem>
+                </TabControl>
+            </GroupBox>
+
+                    <!-- Migration Controls -->
+                    <StackPanel VerticalAlignment="Center" Margin="24,0">
+                    <Border Style="{StaticResource Card}" Padding="24">
+                        <StackPanel>
+                            <TextBlock Text="⚡ Migration" 
+                                  FontSize="18" 
+                                  FontWeight="SemiBold" 
+                                  HorizontalAlignment="Center"
+                                  Foreground="{StaticResource TextBrush}"
+                                  Margin="0,0,0,16"/>
+
+                            <CheckBox Name="chkCreateBackup" 
+                                 Content="Create backup before altering existing objects" 
+                                 IsChecked="True" 
+                                 Margin="0,0,0,16"
+                                 HorizontalAlignment="Center"/>
+
+                            <Button Name="btnPreviewScripts" 
+                               Content="👁️ Preview Scripts" 
+                               Style="{StaticResource SecondaryButton}"
+                               Click="PreviewScripts_Click" 
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Padding="20,10"
+                               Margin="0,0,0,8"/>
+
+                            <Button Name="btnMigrate" 
+                               Content="🚀 Start Migration" 
+                               Style="{StaticResource SuccessButton}"
+                               Click="MigrateStoredProcedures_Click" 
+                               FontSize="16"
+                               FontWeight="Bold"
+                               Padding="24,12"
+                               Margin="0,0,0,16"/>
+
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="Selected database objects will be migrated" 
+                                      HorizontalAlignment="Center" 
+                                      FontSize="12" 
+                                      Foreground="{StaticResource MutedTextBrush}"/>
+                                <TextBlock Text="to selected target databases" 
+                                      HorizontalAlignment="Center" 
+                                      FontSize="12" 
+                                      Foreground="{StaticResource MutedTextBrush}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Right Panel - Target Databases -->
+                <!-- Target Databases -->
+                <StackPanel>
+                    <GroupBox Header="🎯 Target Databases">
+                        <TabControl Name="tabTargetServer" SelectionChanged="TabTargetServer_SelectionChanged">
+                            
+                            <!-- Tab 1: Same Server (Default) -->
+                            <TabItem Header="📍 Same Server" IsSelected="True">
+                                <Grid Margin="8">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                        <CheckBox Name="chkSelectAllDatabases" Content="Select All" 
+                                             Checked="SelectAllDatabases_Checked" 
+                                             Unchecked="SelectAllDatabases_Unchecked"/>
+                                        <TextBlock Name="txtSelectedDatabasesCount" Text="0 databases selected" 
+                                              Margin="16,0,0,0" 
+                                              Foreground="{StaticResource MutedTextBrush}"
+                                              VerticalAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <Separator Grid.Row="1" Margin="0,8"/>
+
+                                    <ListBox Grid.Row="2" Name="lstTargetDatabases" 
+                                        SelectionMode="Extended" 
+                                        MinHeight="200"
+                                        MaxHeight="400"
+                                        Background="{StaticResource SurfaceBrush}"
+                                        BorderBrush="{StaticResource BorderBrush}"
+                                        BorderThickness="1"
+                                        ScrollViewer.CanContentScroll="True"
+                                        VirtualizingPanel.IsVirtualizing="True"
+                                        VirtualizingPanel.VirtualizationMode="Recycling">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <CheckBox Content="{Binding Name}" 
+                                                     IsChecked="{Binding IsSelected}" 
+                                                     Tag="{Binding}" 
+                                                     Checked="DatabaseCheckBox_Changed" 
+                                                     Unchecked="DatabaseCheckBox_Changed"
+                                                     Margin="6,4"
+                                                    />
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </Grid>
+                            </TabItem>
+
+                            <!-- Tab 2: Different Server -->
+                            <TabItem Header="🌐 Different Server">
+                                <Grid Margin="8">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Target Server Connection -->
+                                    <TextBlock Grid.Row="0" Text="Target Server Connection" 
+                                              FontWeight="Bold" 
+                                              Foreground="{StaticResource PrimaryBrush}" 
+                                              Margin="0,0,0,8"/>
+
+                                    <Grid Grid.Row="1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <ComboBox Grid.Column="0" Name="cmbTargetServer" IsEditable="True" 
+                                             SelectionChanged="TargetServer_SelectionChanged"
+                                             Margin="0,0,8,0"/>
+                                        
+                                        <Button Grid.Column="1" Name="btnConnectTargetServer" Content="Connect" 
+                                           Style="{StaticResource ModernButton}" 
+                                           Click="ConnectTargetServer_Click"
+                                           Padding="12,6"/>
+                                    </Grid>
+
+                                    <CheckBox Grid.Row="2" Name="chkTargetWindowsAuth" Content="Use Windows Authentication" 
+                                         IsChecked="True" Checked="TargetWindowsAuth_Changed" Unchecked="TargetWindowsAuth_Changed"
+                                         Margin="0,8,0,0"/>
+
+                                    <Grid Grid.Row="3" Name="targetAuthPanel" Visibility="Collapsed" Margin="0,8,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Target Username -->
+                                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                            <Label Content="👤 Username" FontWeight="SemiBold" 
+                                                  Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,4"/>
+                                            <TextBox Name="txtTargetUsername" 
+                                                    Padding="16,12" 
+                                                    FontSize="14"
+                                                    Background="{StaticResource SurfaceBrush}"
+                                                    BorderBrush="{StaticResource BorderBrush}"
+                                                    BorderThickness="2"
+                                                    ToolTip="Enter target server username"/>
+                                        </StackPanel>
+
+                                        <!-- Target Password -->
+                                        <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                            <Label Content="🔒 Password" FontWeight="SemiBold" 
+                                                  Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,4"/>
+                                            <PasswordBox Name="txtTargetPassword" 
+                                                       Padding="16,12" 
+                                                       FontSize="14"
+                                                       Background="{StaticResource SurfaceBrush}"
+                                                       BorderBrush="{StaticResource BorderBrush}"
+                                                       BorderThickness="2"
+                                                       ToolTip="Enter target server password"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <!-- Target Databases List -->
+                                    <Grid Grid.Row="4" Margin="0,16,0,0">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+
+                                        <StackPanel Grid.Row="0" Orientation="Horizontal">
+                                            <CheckBox Name="chkSelectAllTargetDatabases" Content="Select All" 
+                                                 Checked="SelectAllTargetDatabases_Checked" 
+                                                 Unchecked="SelectAllTargetDatabases_Unchecked"/>
+                                            <TextBlock Name="txtSelectedTargetDatabasesCount" Text="0 databases selected" 
+                                                  Margin="16,0,0,0" 
+                                                  Foreground="{StaticResource MutedTextBrush}"
+                                                  VerticalAlignment="Center"/>
+                                        </StackPanel>
+
+                                        <Separator Grid.Row="1" Margin="0,8"/>
+
+                                        <ListBox Grid.Row="2" Name="lstTargetServerDatabases" 
+                                            SelectionMode="Extended" 
+                                            MinHeight="150"
+                                            MaxHeight="300"
+                                            Background="{StaticResource SurfaceBrush}"
+                                            BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="1"
+                                            ScrollViewer.CanContentScroll="True"
+                                            VirtualizingPanel.IsVirtualizing="True"
+                                            VirtualizingPanel.VirtualizationMode="Recycling">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox Content="{Binding Name}" 
+                                                         IsChecked="{Binding IsSelected}" 
+                                                         Tag="{Binding}" 
+                                                         Checked="TargetDatabaseCheckBox_Changed" 
+                                                         Unchecked="TargetDatabaseCheckBox_Changed"
+                                                         Margin="6,4"
+                                                        />
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </Grid>
+                                </Grid>
+                            </TabItem>
+                        </TabControl>
+                    </GroupBox>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer - Migration Log -->
+        <GroupBox Grid.Row="2" Header="📊 Migration Log" Margin="16,0,16,16">
+            <ScrollViewer>
+                <TextBox Name="txtMigrationLog" 
+                        IsReadOnly="True" 
+                        Background="{StaticResource BackgroundBrush}"
+                        FontFamily="Consolas"
+                        FontSize="12"
+                        AcceptsReturn="True"
+                        TextWrapping="Wrap"
+                        VerticalScrollBarVisibility="Auto"
+                        HorizontalScrollBarVisibility="Auto"/>
+            </ScrollViewer>
+        </GroupBox>
+    </Grid>
+</Window>

@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <!-- ApplicationIcon>app-icon.ico</ApplicationIcon -->
+    <AssemblyTitle>Database Migration Tool</AssemblyTitle>
+    <AssemblyDescription>A tool for migrating stored procedures between SQL Server databases</AssemblyDescription>
+    <AssemblyCompany>Database Migration Solutions</AssemblyCompany>
+    <AssemblyProduct>Database Migration Tool</AssemblyProduct>
+    <Copyright>Copyright © 2025</Copyright>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="app-icon.png" />
+  </ItemGroup>
+
+</Project>

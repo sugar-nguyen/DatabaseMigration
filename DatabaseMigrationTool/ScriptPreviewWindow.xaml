@@ -1,0 +1,180 @@
+<Window x:Class="DatabaseMigrationTool.ScriptPreviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Script Preview" 
+        Height="700" 
+        Width="1000"
+        WindowStartupLocation="CenterOwner">
+    
+    <Window.Resources>
+        <!-- Brushes -->
+        <SolidColorBrush x:Key="BackgroundBrush" Color="#1e1e1e"/>
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#2d2d30"/>
+        <SolidColorBrush x:Key="PrimaryBrush" Color="#0078d4"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#ffffff"/>
+        <SolidColorBrush x:Key="MutedTextBrush" Color="#cccccc"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="#404040"/>
+
+        <!-- Modern Button Style -->
+        <Style x:Key="ModernButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                               CornerRadius="4" 
+                               Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#106ebe"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#005a9e"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- TabControl Style -->
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style TargetType="TabItem">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border Name="Border" Background="{TemplateBinding Background}" 
+                               BorderBrush="{TemplateBinding BorderBrush}" 
+                               BorderThickness="1,1,1,0" 
+                               CornerRadius="4,4,0,0"
+                               Padding="{TemplateBinding Padding}">
+                            <ContentPresenter ContentSource="Header" 
+                                            HorizontalAlignment="Center" 
+                                            VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="{StaticResource PrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#404040"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- TextBox Style for SQL Code -->
+        <Style x:Key="SqlTextBox" TargetType="TextBox">
+            <Setter Property="Background" Value="#1e1e1e"/>
+            <Setter Property="Foreground" Value="#dcdcdc"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontFamily" Value="Consolas, Courier New, monospace"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="AcceptsReturn" Value="True"/>
+            <Setter Property="TextWrapping" Value="NoWrap"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="16" Background="{StaticResource BackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="📋 Script Preview" 
+                      FontSize="24" 
+                      FontWeight="Bold" 
+                      Foreground="{StaticResource TextBrush}"
+                      HorizontalAlignment="Center"
+                      Margin="0,0,0,8"/>
+            <TextBlock Text="Review the SQL scripts that will be executed during migration" 
+                      FontSize="14" 
+                      Foreground="{StaticResource MutedTextBrush}"
+                      HorizontalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- Content -->
+        <TabControl Grid.Row="1" Name="tabScripts">
+            <TabItem Header="📋 Stored Procedures" Name="tabStoredProcedures">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Grid.Row="0" 
+                              Text="Stored procedure scripts to be executed:" 
+                              FontSize="14" 
+                              FontWeight="SemiBold"
+                              Foreground="{StaticResource TextBrush}"
+                              Margin="8"/>
+                    
+                    <TextBox Grid.Row="1" 
+                            Name="txtStoredProcedureScripts"
+                            Style="{StaticResource SqlTextBox}"
+                            Margin="8"/>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="🗂️ Tables" Name="tabTables">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Grid.Row="0" 
+                              Text="Table creation scripts to be executed:" 
+                              FontSize="14" 
+                              FontWeight="SemiBold"
+                              Foreground="{StaticResource TextBrush}"
+                              Margin="8"/>
+                    
+                    <TextBox Grid.Row="1" 
+                            Name="txtTableScripts"
+                            Style="{StaticResource SqlTextBox}"
+                            Margin="8"/>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <!-- Footer -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
+            <Button Content="📋 Copy All Scripts" 
+                   Style="{StaticResource ModernButton}"
+                   Click="CopyScripts_Click"
+                   Margin="0,0,8,0"/>
+            <Button Content="✅ Close" 
+                   Style="{StaticResource ModernButton}"
+                   Click="Close_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
