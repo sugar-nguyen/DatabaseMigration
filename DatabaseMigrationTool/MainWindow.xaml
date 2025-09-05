@@ -202,7 +202,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="0.4*"/>
+            <RowDefinition Height="0.6*"/>
         </Grid.RowDefinitions>
 
         <!-- Header Bar -->
@@ -665,20 +665,55 @@
         </ScrollViewer>
 
         <!-- Footer - Migration Log -->
-        <GroupBox Grid.Row="2" Header="📊 Migration Log" Margin="20,15,20,20">
-            <Border CornerRadius="8" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
-                <TextBox Name="txtMigrationLog" 
-                        IsReadOnly="True" 
-                        Background="{StaticResource BackgroundBrush}"
-                        FontFamily="Consolas"
-                        FontSize="12"
-                        AcceptsReturn="True"
-                        TextWrapping="Wrap"
-                        VerticalScrollBarVisibility="Auto"
-                        HorizontalScrollBarVisibility="Auto"
-                        BorderThickness="0"
-                        Padding="15"/>
-            </Border>
+        <GroupBox Grid.Row="2" Header="📊 Migration Log" Margin="20,15,20,20"
+                  FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TextBrush}">
+            <Grid>
+                <Border CornerRadius="8" BorderBrush="{StaticResource BorderBrush}" BorderThickness="2"
+                        Background="#1E1E1E">
+                    <Border.Effect>
+                        <DropShadowEffect Color="Black" Opacity="0.1" BlurRadius="5" ShadowDepth="2"/>
+                    </Border.Effect>
+                    <ScrollViewer Name="LogScrollViewer" 
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  Background="Transparent"
+                                  Padding="0">
+                        <TextBox Name="txtMigrationLog" 
+                                IsReadOnly="True" 
+                                Background="#1E1E1E"
+                                Foreground="#E0E0E0"
+                                FontFamily="Consolas"
+                                FontSize="13"
+                                FontWeight="Normal"
+                                AcceptsReturn="True"
+                                TextWrapping="Wrap"
+                                BorderThickness="0"
+                                Padding="20"
+                                SelectionBrush="#4A9EFF"
+                                CaretBrush="White"
+                                MinHeight="200">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="TextBox">
+                                                <Border Background="{TemplateBinding Background}"
+                                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                                        BorderThickness="{TemplateBinding BorderThickness}">
+                                                    <ScrollViewer x:Name="PART_ContentHost"
+                                                                  Background="Transparent"
+                                                                  VerticalScrollBarVisibility="Hidden"
+                                                                  HorizontalScrollBarVisibility="Hidden"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+                    </ScrollViewer>
+                </Border>
+            </Grid>
         </GroupBox>
     </Grid>
 </Window>

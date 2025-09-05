@@ -315,20 +315,33 @@ namespace DatabaseMigrationTool.Services
                 var command = new SqlCommand(query, connection);
                 using var reader = await command.ExecuteReaderAsync();
 
+                // First, collect all table information
+                var tableInfos = new List<(string Schema, string Name)>();
                 while (await reader.ReadAsync())
+                {
+                    var schemaName = reader.GetString("SchemaName");
+                    var tableName = reader.GetString("TableName");
+                    tableInfos.Add((schemaName, tableName));
+                }
+
+                // Close the reader before making new queries
+                reader.Close();
+
+                // Now get definitions for each table
+                foreach (var (schema, name) in tableInfos)
                 {
                     var table = new Table
                     {
-                        Schema = reader.GetString("SchemaName"),
-                        Name = reader.GetString("TableName"),
-                        Definition = "" // Tables don't have definitions like stored procedures
+                        Schema = schema,
+                        Name = name,
+                        Definition = await GetTableDefinitionAsync(settings, schema, name)
                     };
                     tables.Add(table);
                 }
             }
             catch (Exception ex)
             {
-                throw new Exception($"Failed to retrieve tables: {ex.Message}");
+                throw new InvalidOperationException($"Error retrieving tables: {ex.Message}", ex);
             }
 
             return tables;
@@ -739,6 +752,114 @@ namespace DatabaseMigrationTool.Services
                 transaction.Rollback();
                 throw;
             }
+        }
+
+        private async Task<string> GetTableDefinitionAsync(ConnectionSettings settings, string schemaName, string tableName)
+        {
+            using var connection = new SqlConnection(settings.GetConnectionString());
+            await connection.OpenAsync();
+
+            var createTableScript = new StringBuilder();
+            createTableScript.AppendLine($"CREATE TABLE [{schemaName}].[{tableName}] (");
+
+            // Get columns
+            var columnQuery = @"
+                SELECT 
+                    c.COLUMN_NAME,
+                    c.DATA_TYPE,
+                    c.CHARACTER_MAXIMUM_LENGTH,
+                    c.NUMERIC_PRECISION,
+                    c.NUMERIC_SCALE,
+                    c.IS_NULLABLE,
+                    c.COLUMN_DEFAULT,
+                    COLUMNPROPERTY(OBJECT_ID(c.TABLE_SCHEMA + '.' + c.TABLE_NAME), c.COLUMN_NAME, 'IsIdentity') as IS_IDENTITY
+                FROM INFORMATION_SCHEMA.COLUMNS c
+                WHERE c.TABLE_SCHEMA = @schemaName AND c.TABLE_NAME = @tableName
+                ORDER BY c.ORDINAL_POSITION";
+
+            var columns = new List<string>();
+            var command = new SqlCommand(columnQuery, connection);
+            command.Parameters.AddWithValue("@schemaName", schemaName);
+            command.Parameters.AddWithValue("@tableName", tableName);
+
+            using (var reader = await command.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    var columnName = reader.GetString("COLUMN_NAME");
+                    var dataType = reader.GetString("DATA_TYPE").ToUpper();
+                    var maxLength = reader.IsDBNull("CHARACTER_MAXIMUM_LENGTH") ? (int?)null : reader.GetInt32("CHARACTER_MAXIMUM_LENGTH");
+                    var precision = reader.IsDBNull("NUMERIC_PRECISION") ? (byte?)null : reader.GetByte("NUMERIC_PRECISION");
+                    var scale = reader.IsDBNull("NUMERIC_SCALE") ? (int?)null : reader.GetInt32("NUMERIC_SCALE");
+                    var isNullable = reader.GetString("IS_NULLABLE") == "YES";
+                    var defaultValue = reader.IsDBNull("COLUMN_DEFAULT") ? null : reader.GetString("COLUMN_DEFAULT");
+                    var isIdentity = reader.GetInt32("IS_IDENTITY") == 1;
+
+                    var columnDef = new StringBuilder();
+                    columnDef.Append($"    [{columnName}] {dataType}");
+
+                    // Add length/precision/scale
+                    if (dataType == "VARCHAR" || dataType == "NVARCHAR" || dataType == "CHAR" || dataType == "NCHAR")
+                    {
+                        if (maxLength == -1)
+                            columnDef.Append("(MAX)");
+                        else if (maxLength.HasValue)
+                            columnDef.Append($"({maxLength})");
+                    }
+                    else if (dataType == "DECIMAL" || dataType == "NUMERIC")
+                    {
+                        if (precision.HasValue && scale.HasValue)
+                            columnDef.Append($"({precision},{scale})");
+                    }
+
+                    // Add IDENTITY
+                    if (isIdentity)
+                        columnDef.Append(" IDENTITY(1,1)");
+
+                    // Add NULL/NOT NULL
+                    columnDef.Append(isNullable ? " NULL" : " NOT NULL");
+
+                    // Add DEFAULT
+                    if (!string.IsNullOrEmpty(defaultValue))
+                        columnDef.Append($" DEFAULT {defaultValue}");
+
+                    columns.Add(columnDef.ToString());
+                }
+            }
+
+            createTableScript.AppendLine(string.Join(",\n", columns));
+
+            // Get primary key
+            var pkQuery = @"
+                SELECT c.COLUMN_NAME
+                FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+                JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE cu ON tc.CONSTRAINT_NAME = cu.CONSTRAINT_NAME
+                JOIN INFORMATION_SCHEMA.COLUMNS c ON cu.COLUMN_NAME = c.COLUMN_NAME AND cu.TABLE_NAME = c.TABLE_NAME
+                WHERE tc.TABLE_SCHEMA = @schemaName AND tc.TABLE_NAME = @tableName 
+                AND tc.CONSTRAINT_TYPE = 'PRIMARY KEY'
+                ORDER BY c.ORDINAL_POSITION";
+
+            var pkColumns = new List<string>();
+            command = new SqlCommand(pkQuery, connection);
+            command.Parameters.AddWithValue("@schemaName", schemaName);
+            command.Parameters.AddWithValue("@tableName", tableName);
+
+            using (var reader = await command.ExecuteReaderAsync())
+            {
+                while (await reader.ReadAsync())
+                {
+                    pkColumns.Add($"[{reader.GetString("COLUMN_NAME")}]");
+                }
+            }
+
+            if (pkColumns.Count > 0)
+            {
+                createTableScript.AppendLine($",    CONSTRAINT [PK_{tableName}] PRIMARY KEY CLUSTERED ({string.Join(", ", pkColumns)})");
+            }
+
+            createTableScript.AppendLine(");");
+
+            return createTableScript.ToString();
         }
     }
 }

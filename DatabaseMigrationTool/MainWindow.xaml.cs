@@ -384,28 +384,6 @@ namespace DatabaseMigrationTool
                     SetStatus($"Migrating to database: {targetDb.Name}");
                     LogMessage($"--- Processing Target Database: {targetDb.Name} ---");
 
-                    // Ensure target database exists
-                    if (!await _databaseService.DatabaseExistsAsync(targetSettings, targetDb.Name))
-                    {
-                        SetStatus($"Creating database: {targetDb.Name}");
-                        LogMessage($"Creating database: {targetDb.Name}");
-                        try
-                        {
-                            await _databaseService.CreateDatabaseAsync(targetSettings, targetDb.Name);
-                            LogMessage($"✓ Database {targetDb.Name} created successfully");
-                        }
-                        catch (Exception ex)
-                        {
-                            LogMessage($"✗ Failed to create database {targetDb.Name}: {ex.Message}");
-                            errorCount++;
-                            continue; // Skip this database if creation failed
-                        }
-                    }
-                    else
-                    {
-                        LogMessage($"Database {targetDb.Name} already exists");
-                    }
-
                     // Migrate stored procedures
                     if (selectedProcedures != null && selectedProcedures.Any())
                     {
