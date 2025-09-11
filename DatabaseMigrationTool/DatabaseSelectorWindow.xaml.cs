@@ -63,7 +63,7 @@ namespace DatabaseMigrationTool
                     // Filter databases based on search term
                     foreach (var db in _allDatabases)
                     {
-                        if (db.Name.ToLower().Contains(searchTerm))
+                        if (db.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
                         {
                             _filteredDatabases.Add(db);
                         }

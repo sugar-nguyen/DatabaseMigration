@@ -18,7 +18,6 @@
         <!-- Search Box -->
         <Grid Grid.Row="0" Margin="0,0,0,10">
             <TextBox Name="txtSearch" 
-                    Height="32"
                     FontSize="13"
                     Background="White"
                     Foreground="#333333"
@@ -105,13 +104,16 @@
                     Padding="5">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <CheckBox Content="{Binding Name}" 
-                                 IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                 Checked="DatabaseCheckBox_Changed"
-                                 Unchecked="DatabaseCheckBox_Changed"
-                                 FontSize="12" 
-                                 Margin="2" 
-                                 Height="22"/>
+                        <StackPanel Orientation="Horizontal" Margin="2" Height="22">
+                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                     Checked="DatabaseCheckBox_Changed"
+                                     Unchecked="DatabaseCheckBox_Changed"
+                                     VerticalAlignment="Center"
+                                     Margin="0,0,8,0"/>
+                            <TextBlock Text="{Binding Name}" 
+                                      FontSize="12"
+                                      VerticalAlignment="Center"/>
+                        </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>

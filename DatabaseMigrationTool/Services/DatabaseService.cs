@@ -48,7 +48,7 @@ namespace DatabaseMigrationTool.Services
                 throw new Exception($"Failed to retrieve databases: {ex.Message}");
             }
 
-            return databases;
+            return databases.Where(x => !x.Contains("edoc", StringComparison.OrdinalIgnoreCase)).ToList();
         }
 
         public async Task<List<StoredProcedure>> GetStoredProceduresAsync(ConnectionSettings settings)
@@ -561,10 +561,10 @@ namespace DatabaseMigrationTool.Services
 
                 // Find columns to add (exist in source but not in target)
                 var columnsToAdd = sourceColumns.Where(sc => !targetColumns.Any(tc => tc.Name.Equals(sc.Name, StringComparison.OrdinalIgnoreCase))).ToList();
-                
+
                 // Find columns to modify (exist in both but with different definitions)
-                var columnsToModify = sourceColumns.Where(sc => targetColumns.Any(tc => 
-                    tc.Name.Equals(sc.Name, StringComparison.OrdinalIgnoreCase) && 
+                var columnsToModify = sourceColumns.Where(sc => targetColumns.Any(tc =>
+                    tc.Name.Equals(sc.Name, StringComparison.OrdinalIgnoreCase) &&
                     !tc.HasSameDefinition(sc))).ToList();
 
                 // Find columns to drop (exist in target but not in source)
@@ -643,21 +643,21 @@ namespace DatabaseMigrationTool.Services
                     {
                         // Generate and execute ALTER TABLE statements
                         var alterScript = await GenerateAlterTableScriptAsync(sourceSettings, targetSettings, table.Schema, table.Name);
-                        
+
                         // Debug: Check what the script contains
                         System.Diagnostics.Debug.WriteLine($"Generated ALTER script for {table.FullName}:");
                         System.Diagnostics.Debug.WriteLine(alterScript);
-                        
+
                         // Execute ALTER statements directly by regenerating them individually
                         var sourceColumns = await GetTableColumnsAsync(sourceSettings, table.Schema, table.Name);
                         var targetColumns = await GetTableColumnsAsync(targetSettings, table.Schema, table.Name);
 
                         // Find columns to add (exist in source but not in target)
                         var columnsToAdd = sourceColumns.Where(sc => !targetColumns.Any(tc => tc.Name.Equals(sc.Name, StringComparison.OrdinalIgnoreCase))).ToList();
-                        
+
                         // Find columns to modify (exist in both but with different definitions)
-                        var columnsToModify = sourceColumns.Where(sc => targetColumns.Any(tc => 
-                            tc.Name.Equals(sc.Name, StringComparison.OrdinalIgnoreCase) && 
+                        var columnsToModify = sourceColumns.Where(sc => targetColumns.Any(tc =>
+                            tc.Name.Equals(sc.Name, StringComparison.OrdinalIgnoreCase) &&
                             !tc.HasSameDefinition(sc))).ToList();
 
                         // Execute ADD COLUMN statements
@@ -700,17 +700,17 @@ namespace DatabaseMigrationTool.Services
                         if (columnsToAdd.Any())
                         {
                             System.Diagnostics.Debug.WriteLine($"Verifying {columnsToAdd.Count} columns were added to {table.Schema}.{table.Name}...");
-                            
+
                             // Check columns using the same connection and transaction
                             var checkCommand = new SqlCommand(@"
                                 SELECT c.COLUMN_NAME, c.DATA_TYPE, c.IS_NULLABLE, c.COLUMN_DEFAULT, c.CHARACTER_MAXIMUM_LENGTH, c.NUMERIC_PRECISION, c.NUMERIC_SCALE
                                 FROM INFORMATION_SCHEMA.COLUMNS c
                                 WHERE c.TABLE_SCHEMA = @schema AND c.TABLE_NAME = @table
                                 ORDER BY c.ORDINAL_POSITION", connection, transaction);
-                            
+
                             checkCommand.Parameters.AddWithValue("@schema", table.Schema);
                             checkCommand.Parameters.AddWithValue("@table", table.Name);
-                            
+
                             var updatedColumns = new List<string>();
                             using var reader = await checkCommand.ExecuteReaderAsync();
                             while (await reader.ReadAsync())
@@ -718,7 +718,7 @@ namespace DatabaseMigrationTool.Services
                                 updatedColumns.Add(reader.GetString("COLUMN_NAME"));
                             }
                             reader.Close();
-                            
+
                             foreach (var addedColumn in columnsToAdd)
                             {
                                 var exists = updatedColumns.Any(c => c.Equals(addedColumn.Name, StringComparison.OrdinalIgnoreCase));

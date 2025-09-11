@@ -416,13 +416,17 @@
                                         BorderThickness="1">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
-                                            <CheckBox Content="{Binding Name}" 
-                                                     IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                                     Checked="TargetDatabaseCheckBox_Changed"
-                                                     Unchecked="TargetDatabaseCheckBox_Changed"
-                                                     Margin="5,2"
-                                                     Foreground="{StaticResource TextBrush}"
-                                                     FontSize="12"/>
+                                            <StackPanel Orientation="Horizontal" Margin="5,2">
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                         Checked="TargetDatabaseCheckBox_Changed"
+                                                         Unchecked="TargetDatabaseCheckBox_Changed"
+                                                         VerticalAlignment="Center"
+                                                         Margin="0,0,8,0"/>
+                                                <TextBlock Text="{Binding Name}" 
+                                                          Foreground="{StaticResource TextBrush}"
+                                                          FontSize="12"
+                                                          VerticalAlignment="Center"/>
+                                            </StackPanel>
                                         </DataTemplate>
                                     </ListBox.ItemTemplate>
                                 </ListBox>
@@ -518,12 +522,17 @@
                                             </ListBox.ItemContainerStyle>
                                             <ListBox.ItemTemplate>
                                                 <DataTemplate>
-                                                    <CheckBox Content="{Binding FullName}" 
-                                                         IsChecked="{Binding IsSelected}" 
-                                                         Tag="{Binding}" 
-                                                         Checked="ProcedureCheckBox_Changed" 
-                                                         Unchecked="ProcedureCheckBox_Changed"
-                                                         Margin="4,2" FontSize="12" Height="24"/>
+                                                    <StackPanel Orientation="Horizontal" Margin="4,2" Height="24">
+                                                        <CheckBox IsChecked="{Binding IsSelected}" 
+                                                                 Tag="{Binding}" 
+                                                                 Checked="ProcedureCheckBox_Changed" 
+                                                                 Unchecked="ProcedureCheckBox_Changed"
+                                                                 VerticalAlignment="Center"
+                                                                 Margin="0,0,8,0"/>
+                                                        <TextBlock Text="{Binding FullName}" 
+                                                                  FontSize="12"
+                                                                  VerticalAlignment="Center"/>
+                                                    </StackPanel>
                                                 </DataTemplate>
                                             </ListBox.ItemTemplate>
                                         </ListBox>
@@ -606,12 +615,17 @@
                                             </ListBox.ItemContainerStyle>
                                             <ListBox.ItemTemplate>
                                                 <DataTemplate>
-                                                    <CheckBox Content="{Binding FullName}" 
-                                                         IsChecked="{Binding IsSelected}" 
-                                                         Tag="{Binding}" 
-                                                         Checked="TableCheckBox_Changed" 
-                                                         Unchecked="TableCheckBox_Changed"
-                                                         Margin="4,2" FontSize="12" Height="24"/>
+                                                    <StackPanel Orientation="Horizontal" Margin="4,2" Height="24">
+                                                        <CheckBox IsChecked="{Binding IsSelected}" 
+                                                                 Tag="{Binding}" 
+                                                                 Checked="TableCheckBox_Changed" 
+                                                                 Unchecked="TableCheckBox_Changed"
+                                                                 VerticalAlignment="Center"
+                                                                 Margin="0,0,8,0"/>
+                                                        <TextBlock Text="{Binding FullName}" 
+                                                                  FontSize="12"
+                                                                  VerticalAlignment="Center"/>
+                                                    </StackPanel>
                                                 </DataTemplate>
                                             </ListBox.ItemTemplate>
                                         </ListBox>

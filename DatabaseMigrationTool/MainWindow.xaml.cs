@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,6 +10,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Threading;
+using Microsoft.Win32;
 using DatabaseMigrationTool.Models;
 using DatabaseMigrationTool.Services;
 
@@ -33,6 +36,11 @@ namespace DatabaseMigrationTool
         private ConnectionSettings? _differentServerSettings;
         private ObservableCollection<TargetDatabase>? _differentServerDatabases;
 
+        // Search debounce timers
+        private DispatcherTimer? _procedureSearchTimer;
+        private DispatcherTimer? _tableSearchTimer;
+        private const int SearchDelayMs = 500; // 500ms delay
+
         public MainWindow()
         {
             InitializeComponent();
@@ -42,6 +50,9 @@ namespace DatabaseMigrationTool
             _tables = new List<Table>();
             _targetDatabases = new ObservableCollection<TargetDatabase>();
             _targetServerDatabases = new ObservableCollection<TargetDatabase>();
+
+            // Initialize search timers
+            InitializeSearchTimers();
 
             LoadConnectionHistory();
             UpdateTargetConfigurationDisplay();
@@ -837,52 +848,20 @@ namespace DatabaseMigrationTool
 
         private void SearchProcedures_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (_storedProceduresView != null)
-            {
-                var searchText = txtSearchProcedures.Text?.ToLower() ?? string.Empty;
-                
-                if (string.IsNullOrEmpty(searchText))
-                {
-                    _storedProceduresView.Filter = null;
-                }
-                else
-                {
-                    _storedProceduresView.Filter = item =>
-                    {
-                        if (item is StoredProcedure sp)
-                        {
-                            return sp.Name.ToLower().Contains(searchText);
-                        }
-                        return false;
-                    };
-                }
-                _storedProceduresView.Refresh();
-            }
+            // Stop any existing timer
+            _procedureSearchTimer?.Stop();
+            
+            // Start new timer
+            _procedureSearchTimer?.Start();
         }
 
         private void SearchTables_TextChanged(object sender, TextChangedEventArgs e)
         {
-            if (_tablesView != null)
-            {
-                var searchText = txtSearchTables.Text?.ToLower() ?? string.Empty;
-                
-                if (string.IsNullOrEmpty(searchText))
-                {
-                    _tablesView.Filter = null;
-                }
-                else
-                {
-                    _tablesView.Filter = item =>
-                    {
-                        if (item is Table table)
-                        {
-                            return table.Name.ToLower().Contains(searchText);
-                        }
-                        return false;
-                    };
-                }
-                _tablesView.Refresh();
-            }
+            // Stop any existing timer
+            _tableSearchTimer?.Stop();
+            
+            // Start new timer
+            _tableSearchTimer?.Start();
         }
 
         private void ClearAll_Click(object sender, RoutedEventArgs e)
@@ -1006,8 +985,41 @@ namespace DatabaseMigrationTool
 
                 if (result == MessageBoxResult.Yes)
                 {
-                    // TODO: Implement save to file functionality
-                    MessageBox.Show("Settings saved! (File save implementation in progress)", "Settings Saved", MessageBoxButton.OK, MessageBoxImage.Information);
+                    try
+                    {
+                        // Create SaveFileDialog for user to choose location and filename
+                        var saveDialog = new SaveFileDialog
+                        {
+                            Title = "Save Migration Settings",
+                            Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*",
+                            DefaultExt = "txt",
+                            FileName = $"MigrationSettings_{DateTime.Now:yyyyMMdd_HHmmss}.txt"
+                        };
+
+                        if (saveDialog.ShowDialog() == true)
+                        {
+                            // Save settings to the selected file
+                            File.WriteAllText(saveDialog.FileName, settings.ToString());
+                            
+                            MessageBox.Show(
+                                $"Settings successfully saved to:\n{saveDialog.FileName}", 
+                                "Settings Saved", 
+                                MessageBoxButton.OK, 
+                                MessageBoxImage.Information);
+                                
+                            LogMessage($"Migration settings saved to: {saveDialog.FileName}");
+                        }
+                    }
+                    catch (Exception saveEx)
+                    {
+                        MessageBox.Show(
+                            $"Error saving file: {saveEx.Message}", 
+                            "Save Error", 
+                            MessageBoxButton.OK, 
+                            MessageBoxImage.Error);
+                            
+                        LogMessage($"Error saving settings file: {saveEx.Message}");
+                    }
                 }
 
                 SetStatus("Migration settings generated successfully");
@@ -1188,6 +1200,81 @@ namespace DatabaseMigrationTool
                 {
                     originalDb.IsSelected = true;
                 }
+            }
+        }
+
+        private void InitializeSearchTimers()
+        {
+            // Initialize procedure search timer
+            _procedureSearchTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(SearchDelayMs)
+            };
+            _procedureSearchTimer.Tick += (sender, e) =>
+            {
+                _procedureSearchTimer?.Stop();
+                PerformProcedureSearch();
+            };
+
+            // Initialize table search timer
+            _tableSearchTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(SearchDelayMs)
+            };
+            _tableSearchTimer.Tick += (sender, e) =>
+            {
+                _tableSearchTimer?.Stop();
+                PerformTableSearch();
+            };
+        }
+
+        private void PerformProcedureSearch()
+        {
+            if (_storedProceduresView != null)
+            {
+                var searchText = txtSearchProcedures.Text?.ToLower() ?? string.Empty;
+                
+                if (string.IsNullOrEmpty(searchText))
+                {
+                    _storedProceduresView.Filter = null;
+                }
+                else
+                {
+                    _storedProceduresView.Filter = item =>
+                    {
+                        if (item is StoredProcedure sp)
+                        {
+                            return sp.Name.ToLower().Contains(searchText);
+                        }
+                        return false;
+                    };
+                }
+                _storedProceduresView.Refresh();
+            }
+        }
+
+        private void PerformTableSearch()
+        {
+            if (_tablesView != null)
+            {
+                var searchText = txtSearchTables.Text?.ToLower() ?? string.Empty;
+                
+                if (string.IsNullOrEmpty(searchText))
+                {
+                    _tablesView.Filter = null;
+                }
+                else
+                {
+                    _tablesView.Filter = item =>
+                    {
+                        if (item is Table table)
+                        {
+                            return table.Name.ToLower().Contains(searchText);
+                        }
+                        return false;
+                    };
+                }
+                _tablesView.Refresh();
             }
         }
 

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -6,8 +6,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <!-- ApplicationIcon>app-icon.ico</ApplicationIcon -->
+    <ApplicationIcon>app-icon.ico</ApplicationIcon>
     <AssemblyTitle>Database Migration Tool</AssemblyTitle>
+    <AssemblyName>DatabaseMigrationTool_v1.0.0</AssemblyName>
     <AssemblyDescription>A tool for migrating stored procedures between SQL Server databases</AssemblyDescription>
     <AssemblyCompany>Database Migration Solutions</AssemblyCompany>
     <AssemblyProduct>Database Migration Tool</AssemblyProduct>
@@ -23,6 +24,7 @@
 
   <ItemGroup>
     <Resource Include="app-icon.png" />
+    <Content Include="app-icon.ico" />
   </ItemGroup>
 
 </Project>
