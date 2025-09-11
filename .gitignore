@@ -416,3 +416,13 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Custom: Portable builds and publish directories
+publish-portable/
+publish/
+**/publish-portable/
+**/publish/
+
+# Custom: Executable files (portable builds)
+*.exe
+!**/packages/**/*.exe

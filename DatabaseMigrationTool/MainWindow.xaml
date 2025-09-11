@@ -134,8 +134,8 @@
             <Setter Property="Height" Value="40"/>
             <Setter Property="Padding" Value="12,10"/>
             <Setter Property="Margin" Value="0,6"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
-            <Setter Property="BorderThickness" Value="2"/>
+            <!--<Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="2"/>-->
             <Setter Property="Background" Value="White"/>
             <Setter Property="Foreground" Value="Black"/>
             <Setter Property="FontSize" Value="14"/>
@@ -145,8 +145,8 @@
             <Setter Property="Height" Value="40"/>
             <Setter Property="Padding" Value="12,10"/>
             <Setter Property="Margin" Value="0,6"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
-            <Setter Property="BorderThickness" Value="2"/>
+            <!--<Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="2"/>-->
             <Setter Property="Background" Value="White"/>
             <Setter Property="Foreground" Value="Black"/>
             <Setter Property="FontSize" Value="14"/>
@@ -278,10 +278,13 @@
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,25,0,0">
                                 <Button Name="btnTestConnection" Content="Test Connection" 
                                        Style="{StaticResource SecondaryButton}" 
-                                       Click="TestConnection_Click" Margin="0,0,12,0"/>
+                                       Click="TestConnection_Click" 
+                                       Margin="0,0,15,0"
+                                       MinWidth="140"/>
                                 <Button Name="btnRefreshDatabases" Content="Load Databases" 
                                        Style="{StaticResource SuccessButton}" 
-                                       Click="RefreshDatabases_Click"/>
+                                       Click="RefreshDatabases_Click"
+                                       MinWidth="140"/>
                             </StackPanel>
                         </StackPanel>
                     </GroupBox>
@@ -362,6 +365,51 @@
                                            Click="FullscreenTargetDatabases_Click"
                                            Width="32" Height="32" Padding="6" FontSize="12"/>
                                 </Grid>
+                                
+                                <!-- Search box for target databases -->
+                                <Grid Margin="0,5,0,5">
+                                    <TextBox Name="txtTargetDatabaseSearch"  
+                                            FontSize="13"
+                                            Background="{StaticResource SurfaceBrush}"
+                                            Foreground="{StaticResource TextBrush}"
+                                            BorderBrush="{StaticResource BorderBrush}"
+                                            BorderThickness="1"
+                                            Padding="30,8,8,8"
+                                            VerticalContentAlignment="Center"
+                                            TextChanged="TargetDatabaseSearch_TextChanged">
+                                        
+                                    </TextBox>
+                                    
+                                    <!-- Search icon -->
+                                    <TextBlock Text="🔍" 
+                                              FontSize="14"
+                                              Foreground="{StaticResource MutedTextBrush}"
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="Left"
+                                              Margin="10,0,0,0"
+                                              IsHitTestVisible="False"/>
+                                    
+                                    <!-- Placeholder text -->
+                                    <TextBlock Text="Search databases..." 
+                                              FontSize="13"
+                                              Foreground="{StaticResource MutedTextBrush}"
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="Left"
+                                              Margin="30,0,0,0"
+                                              IsHitTestVisible="False">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Text, ElementName=txtTargetDatabaseSearch}" Value="">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+                                
                                 <ListBox Name="lstTargetDatabases" Height="100" 
                                         Background="{StaticResource SurfaceBrush}"
                                         BorderBrush="{StaticResource BorderBrush}"
@@ -374,7 +422,7 @@
                                                      Unchecked="TargetDatabaseCheckBox_Changed"
                                                      Margin="5,2"
                                                      Foreground="{StaticResource TextBrush}"
-                                                     FontSize="14"/>
+                                                     FontSize="12"/>
                                         </DataTemplate>
                                     </ListBox.ItemTemplate>
                                 </ListBox>
@@ -435,21 +483,18 @@
                                                    Margin="20,0,0,0"/>
                                         </StackPanel>
                                         
-                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                            <Border Background="{StaticResource BackgroundBrush}" 
-                                                   CornerRadius="15" Padding="12,6">
-                                                <TextBlock Name="txtProcedureCount" 
-                                                          Text="0 procedures" 
-                                                          FontSize="13" FontWeight="Medium"
-                                                          Foreground="{StaticResource TextBrush}"/>
-                                            </Border>
-                                            <Border Background="{StaticResource AccentBrush}" 
-                                                   CornerRadius="15" Padding="12,6" Margin="10,0,0,0">
-                                                <TextBlock Name="txtSelectedProceduresCount" 
-                                                          Text="0 selected" 
-                                                          FontSize="13" FontWeight="Bold"
-                                                          Foreground="White"/>
-                                            </Border>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Name="txtProcedureCount" 
+                                                      Text="0 procedures" 
+                                                      FontSize="13" FontWeight="Medium"
+                                                      Foreground="{StaticResource TextBrush}"
+                                                      VerticalAlignment="Center"
+                                                      Margin="0,0,15,0"/>
+                                            <TextBlock Name="txtSelectedProceduresCount" 
+                                                      Text="0 selected" 
+                                                      FontSize="13" FontWeight="Bold"
+                                                      Foreground="{StaticResource AccentBrush}"
+                                                      VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Grid>
 
@@ -526,21 +571,18 @@
                                                    Margin="20,0,0,0"/>
                                         </StackPanel>
                                         
-                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                            <Border Background="{StaticResource BackgroundBrush}" 
-                                                   CornerRadius="15" Padding="12,6">
-                                                <TextBlock Name="txtTableCount" 
-                                                          Text="0 tables" 
-                                                          FontSize="13" FontWeight="Medium"
-                                                          Foreground="{StaticResource TextBrush}"/>
-                                            </Border>
-                                            <Border Background="{StaticResource PrimaryBrush}" 
-                                                   CornerRadius="15" Padding="12,6" Margin="10,0,0,0">
-                                                <TextBlock Name="txtSelectedTablesCount" 
-                                                          Text="0 selected" 
-                                                          FontSize="13" FontWeight="Bold"
-                                                          Foreground="White"/>
-                                            </Border>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Name="txtTableCount" 
+                                                      Text="0 tables" 
+                                                      FontSize="13" FontWeight="Medium"
+                                                      Foreground="{StaticResource TextBrush}"
+                                                      VerticalAlignment="Center"
+                                                      Margin="0,0,15,0"/>
+                                            <TextBlock Name="txtSelectedTablesCount" 
+                                                      Text="0 selected" 
+                                                      FontSize="13" FontWeight="Bold"
+                                                      Foreground="{StaticResource AccentBrush}"
+                                                      VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Grid>
 
@@ -598,6 +640,7 @@
                             <Button Name="btnStartMigration" Content="🚀 Start Migration" 
                                    Style="{StaticResource SuccessButton}" 
                                    Click="StartMigration_Click" 
+                                    Margin="0,0,0,15"
                                    HorizontalAlignment="Stretch"/>
                                    
                             <Separator Margin="0,30,0,25" Background="{StaticResource BorderBrush}"/>
@@ -607,15 +650,10 @@
                                       Foreground="{StaticResource TextBrush}" 
                                       HorizontalAlignment="Center" Margin="0,0,0,15"
                                       FontSize="16"/>
-                            
-                            <CheckBox Content="Replace existing objects" Name="chkReplaceExistingOption"
+
+                            <CheckBox Content="Create backup first" Name="chkCreateBackup" IsChecked="True"
                                      Margin="0,0,0,10"/>
-                            <CheckBox Content="Create backup first" IsChecked="True"
-                                     Margin="0,0,0,10"/>
-                            <CheckBox Content="Continue on errors" 
-                                     Margin="0,0,0,10"/>
-                            <CheckBox Content="Validate after migration" IsChecked="True"
-                                     Margin="0,0,0,25"/>
+
                                      
                             <!-- Status Panel -->
                             <Border Background="{StaticResource BackgroundBrush}" 

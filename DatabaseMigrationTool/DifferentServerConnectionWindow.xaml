@@ -121,24 +121,6 @@
             <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="PasswordBox">
-                        <Border Background="{TemplateBinding Background}" 
-                                BorderBrush="{TemplateBinding BorderBrush}" 
-                                BorderThickness="{TemplateBinding BorderThickness}" 
-                                CornerRadius="8">
-                            <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"
-                                         VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsFocused" Value="True">
-                                <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
         </Style>
 
         <!-- Modern CheckBox Style -->
@@ -186,7 +168,7 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel>
                 <Label Content="Server Name" FontWeight="SemiBold"/>
-                <ComboBox Name="cmbTargetServer" IsEditable="True"/>
+                <ComboBox Name="cmbTargetServer" IsEditable="True" SelectionChanged="TargetServer_SelectionChanged"/>
 
                 <CheckBox Name="chkTargetWindowsAuth" Content="Use Windows Authentication" 
                          IsChecked="True" Margin="0,20,0,0"

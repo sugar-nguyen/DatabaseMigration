@@ -12,6 +12,7 @@ namespace DatabaseMigrationTool
     public partial class DifferentServerConnectionWindow : Window
     {
         private readonly DatabaseService _databaseService;
+        private readonly ConnectionSettingsService _connectionService;
         private ObservableCollection<TargetDatabase> _targetDatabases;
         private ConnectionSettings? _connectionSettings;
 
@@ -22,28 +23,82 @@ namespace DatabaseMigrationTool
         {
             InitializeComponent();
             _databaseService = new DatabaseService();
+            _connectionService = new ConnectionSettingsService();
             _targetDatabases = new ObservableCollection<TargetDatabase>();
             
             lstTargetDatabases.ItemsSource = _targetDatabases;
             
-            // Load recent servers from settings if available
-            LoadRecentServers();
+            // Load connection history
+            LoadConnectionHistory();
         }
 
-        private void LoadRecentServers()
+        private void LoadConnectionHistory()
         {
-            // Add some common server names - you can expand this with actual recent connections
-            var commonServers = new List<string>
+            try
             {
-                "localhost",
-                ".\\SQLEXPRESS",
-                "(local)",
-                "127.0.0.1"
-            };
+                var connections = _connectionService.GetServerConnections();
+                
+                cmbTargetServer.Items.Clear();
+                
+                // Add server names as strings first
+                var serverNames = connections.Select(c => c.ServerName).Distinct().ToList();
+                foreach (var serverName in serverNames)
+                {
+                    cmbTargetServer.Items.Add(serverName);
+                }
+                
+                // Store connections for later use
+                cmbTargetServer.Tag = connections;
+                
+                // Add some common server names if no history exists
+                if (!serverNames.Any())
+                {
+                    var commonServers = new List<string>
+                    {
+                        "localhost",
+                        ".\\SQLEXPRESS", 
+                        "(local)",
+                        "127.0.0.1"
+                    };
 
-            foreach (var server in commonServers)
+                    foreach (var server in commonServers)
+                    {
+                        cmbTargetServer.Items.Add(server);
+                    }
+                }
+            }
+            catch (Exception)
             {
-                cmbTargetServer.Items.Add(server);
+                // Log error but don't crash the application
+                // MessageBox.Show($"Warning: Could not load connection history: {ex.Message}");
+            }
+        }
+
+        private void TargetServer_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (cmbTargetServer.SelectedItem is string selectedServer && cmbTargetServer.Tag is List<ConnectionSettings> connections)
+            {
+                // Find the most recent connection for this server
+                var connection = connections
+                    .Where(c => c.ServerName.Equals(selectedServer, StringComparison.OrdinalIgnoreCase))
+                    .FirstOrDefault();
+
+                if (connection != null)
+                {
+                    // Auto-fill credentials based on connection history
+                    chkTargetWindowsAuth.IsChecked = connection.UseWindowsAuthentication;
+                    
+                    if (!connection.UseWindowsAuthentication)
+                    {
+                        txtTargetUsername.Text = connection.Username;
+                        txtTargetPassword.Password = connection.Password;
+                    }
+                    else
+                    {
+                        txtTargetUsername.Text = "";
+                        txtTargetPassword.Password = "";
+                    }
+                }
             }
         }
 
@@ -78,6 +133,14 @@ namespace DatabaseMigrationTool
 
                 if (isConnected)
                 {
+                    // Save connection to history
+                    _connectionService.SaveServerConnection(connectionSettings);
+                    
+                    // Preserve current server name when refreshing history
+                    var currentServerName = cmbTargetServer.Text;
+                    LoadConnectionHistory(); 
+                    cmbTargetServer.Text = currentServerName; // Restore the server name
+                    
                     MessageBox.Show("Connection successful!", "Test Connection", 
                                    MessageBoxButton.OK, MessageBoxImage.Information);
                     btnLoadDatabases.IsEnabled = true;

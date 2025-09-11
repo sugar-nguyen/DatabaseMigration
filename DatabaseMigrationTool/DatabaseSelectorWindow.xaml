@@ -9,12 +9,92 @@
     
     <Grid Margin="15">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
+        <!-- Search Box -->
+        <Grid Grid.Row="0" Margin="0,0,0,10">
+            <TextBox Name="txtSearch" 
+                    Height="32"
+                    FontSize="13"
+                    Background="White"
+                    Foreground="#333333"
+                    BorderBrush="#D0D0D0"
+                    BorderThickness="1"
+                    Padding="30,8,8,8"
+                    VerticalContentAlignment="Center"
+                    TextChanged="SearchTextBox_TextChanged"/>
+            
+            <!-- Search icon -->
+            <TextBlock Text="🔍" 
+                      FontSize="14"
+                      Foreground="#888888"
+                      VerticalAlignment="Center"
+                      HorizontalAlignment="Left"
+                      Margin="10,0,0,0"
+                      IsHitTestVisible="False"/>
+            
+            <!-- Placeholder text -->
+            <TextBlock Text="Search databases..." 
+                      FontSize="13"
+                      Foreground="#AAAAAA"
+                      VerticalAlignment="Center"
+                      HorizontalAlignment="Left"
+                      Margin="30,0,0,0"
+                      IsHitTestVisible="False">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Text, ElementName=txtSearch}" Value="">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </Grid>
+
+        <!-- Select All Controls -->
+        <Grid Grid.Row="1" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            
+            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                <CheckBox Name="chkSelectAll" 
+                         Content="✓ Select All Visible" 
+                         Checked="SelectAll_Checked" 
+                         Unchecked="SelectAll_Unchecked"
+                         FontSize="13" FontWeight="SemiBold"
+                         Foreground="#2563EB"/>
+                <Button Name="btnClearAll" 
+                       Content="Clear All" 
+                       Click="ClearAll_Click"
+                       Padding="12,6"
+                       Margin="15,0,0,0"
+                       Background="#EF4444" 
+                       Foreground="White" 
+                       BorderThickness="0" 
+                       FontSize="12"
+                       Height="28"/>
+            </StackPanel>
+            
+            <TextBlock Grid.Column="1" 
+                      Name="txtSelectionCount" 
+                      Text="0 selected" 
+                      FontSize="12" 
+                      FontWeight="Medium"
+                      Foreground="#10B981"
+                      VerticalAlignment="Center"/>
+        </Grid>
+
         <!-- Database List -->
-        <Border Grid.Row="0" BorderBrush="#D0D0D0" BorderThickness="1" 
+        <Border Grid.Row="2" BorderBrush="#D0D0D0" BorderThickness="1" 
                 Background="White" Margin="0,0,0,15">
             <ListBox Name="lstDatabases" 
                     SelectionMode="Multiple"
@@ -25,14 +105,20 @@
                     Padding="5">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <CheckBox Content="{Binding}" FontSize="12" Margin="2" Height="22"/>
+                        <CheckBox Content="{Binding Name}" 
+                                 IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                 Checked="DatabaseCheckBox_Changed"
+                                 Unchecked="DatabaseCheckBox_Changed"
+                                 FontSize="12" 
+                                 Margin="2" 
+                                 Height="22"/>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
         </Border>
 
         <!-- Bottom Controls -->
-        <Button Grid.Row="1" Name="btnClose" Content="Close" 
+        <Button Grid.Row="3" Name="btnClose" Content="Close" 
                Click="Cancel_Click" 
                Padding="20,8"
                Background="#9E9E9E" Foreground="White" 

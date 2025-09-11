@@ -61,20 +61,44 @@ namespace DatabaseMigrationTool
         {
             try
             {
-                var connections = _connectionService.GetConnections();
-                var serverNames = connections.Select(c => c.ServerName).Distinct().ToList();
+                var connections = _connectionService.GetServerConnections();
                 
-                foreach (var server in serverNames)
+                cmbServer.Items.Clear();
+                
+                // Add server names as strings first
+                var serverNames = connections.Select(c => c.ServerName).Distinct().ToList();
+                foreach (var serverName in serverNames)
                 {
-                    if (!cmbServer.Items.Contains(server))
-                        cmbServer.Items.Add(server);
+                    cmbServer.Items.Add(serverName);
                 }
+                
+                // Store connections for later use
+                cmbServer.Tag = connections;
             }
             catch (Exception ex)
             {
                 // Log error but don't crash the application
                 SetStatus($"Warning: Could not load connection history: {ex.Message}");
             }
+        }
+
+        private bool ValidateServerConnection()
+        {
+            if (string.IsNullOrWhiteSpace(cmbServer.Text))
+            {
+                MessageBox.Show("Please enter a server name first.", "Missing Information", 
+                               MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            if (!(chkWindowsAuth.IsChecked ?? true) && string.IsNullOrWhiteSpace(txtUsername.Text))
+            {
+                MessageBox.Show("Please enter username for SQL Server authentication.", "Missing Information", 
+                               MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            return true;
         }
 
         private ConnectionSettings GetCurrentConnectionSettings()
@@ -119,6 +143,15 @@ namespace DatabaseMigrationTool
                     SetStatus("Connection test successful");
                     LogMessage("✓ Connection test successful");
                     LogMessage("🔗 Server is accessible and credentials are valid");
+                    
+                    // Save connection to history
+                    _connectionService.SaveServerConnection(settings);
+                    
+                    // Preserve current server name when refreshing history
+                    var currentServerName = cmbServer.Text;
+                    LoadConnectionHistory(); 
+                    cmbServer.Text = currentServerName; // Restore the server name
+                    
                     MessageBox.Show("Connection successful!", "Connection Test", 
                                    MessageBoxButton.OK, MessageBoxImage.Information);
                 }
@@ -177,6 +210,14 @@ namespace DatabaseMigrationTool
                 // Update the target database count display
                 UpdateTargetDatabaseCount();
 
+                // Save connection to history when databases loaded successfully
+                _connectionService.SaveServerConnection(settings);
+                
+                // Preserve current server name when refreshing history
+                var currentServerName = cmbServer.Text;
+                LoadConnectionHistory(); 
+                cmbServer.Text = currentServerName; // Restore the server name
+
                 SetStatus($"Loaded {databases.Count} databases");
                 LogMessage($"✓ Successfully loaded {databases.Count} databases");
                 LogMessage($"Available databases: {string.Join(", ", databases.Take(10))}{(databases.Count > 10 ? $" and {databases.Count - 10} more..." : "")}");
@@ -197,6 +238,12 @@ namespace DatabaseMigrationTool
         {
             try
             {
+                // Validate server connection first
+                if (!ValidateServerConnection())
+                {
+                    return;
+                }
+
                 if (string.IsNullOrWhiteSpace(cmbSourceDatabase.Text))
                 {
                     MessageBox.Show("Please select a source database first.", "Missing Information", 
@@ -208,8 +255,23 @@ namespace DatabaseMigrationTool
                 LogMessage($"=== LOADING DATABASE OBJECTS ===");
                 LogMessage($"Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
                 LogMessage($"Source Database: {cmbSourceDatabase.Text}");
+                LogMessage($"Server: {cmbServer.Text}");
+                LogMessage($"Authentication: {(chkWindowsAuth.IsChecked == true ? "Windows Authentication" : $"SQL Server Authentication (User: {txtUsername.Text})")}");
                 
                 var settings = GetCurrentConnectionSettings();
+                LogMessage($"Connection String Preview: Server={settings.ServerName};Database={settings.DatabaseName};[Auth Info Hidden]");
+                
+                // Test connection before loading objects
+                LogMessage("Testing connection to source database...");
+                var connectionTest = await _databaseService.TestConnectionAsync(settings);
+                if (!connectionTest)
+                {
+                    LogMessage("✗ Connection test failed - cannot load database objects");
+                    MessageBox.Show("Connection to source database failed. Please check your connection settings and try 'Test Connection' first.", 
+                                   "Connection Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+                LogMessage("✓ Connection test successful");
                 
                 // Load stored procedures
                 LogMessage("Loading stored procedures...");
@@ -305,6 +367,13 @@ namespace DatabaseMigrationTool
                 lstTargetDatabases.ItemsSource = _targetDatabases;
             }
             
+            // Force refresh the ListBox to update checkboxes
+            if (lstTargetDatabases.ItemsSource != null)
+            {
+                var view = CollectionViewSource.GetDefaultView(lstTargetDatabases.ItemsSource);
+                view?.Refresh();
+            }
+            
             // Update the database count
             UpdateTargetDatabaseCount();
         }
@@ -317,8 +386,20 @@ namespace DatabaseMigrationTool
         {
             try
             {
-                // Check if we have target databases selected
-                var selectedTargetDbs = _targetDatabases?.Where(d => d.IsSelected).ToList();
+                // Check if we have target databases selected - handle both same server and different server modes
+                List<TargetDatabase>? selectedTargetDbs = null;
+                
+                if (_isDifferentServerMode && _differentServerDatabases != null)
+                {
+                    // Different server mode - check _differentServerDatabases
+                    selectedTargetDbs = _differentServerDatabases.Where(d => d.IsSelected).ToList();
+                }
+                else
+                {
+                    // Same server mode - check _targetDatabases
+                    selectedTargetDbs = _targetDatabases?.Where(d => d.IsSelected).ToList();
+                }
+                
                 if (selectedTargetDbs == null || !selectedTargetDbs.Any())
                 {
                     MessageBox.Show("Please select target databases before starting migration.", "No Target Databases", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -395,14 +476,19 @@ namespace DatabaseMigrationTool
                                 SetStatus($"Migrating procedure {sp.Name} to {targetDb.Name}...");
                                 LogMessage($"  • Migrating procedure: {sp.Schema}.{sp.Name}");
                                 
-                                // Check if backup will be created
+                                // Check if backup will be created based on checkbox
+                                bool createBackup = chkCreateBackup.IsChecked == true;
                                 var procedureExists = await _databaseService.StoredProcedureExistsAsync(targetSettings, sp.Schema, sp.Name);
-                                if (procedureExists)
+                                if (procedureExists && createBackup)
                                 {
                                     LogMessage($"    → Creating backup: {sp.Name}_{DateTime.Now:ddMMyyyy}");
                                 }
+                                else if (procedureExists && !createBackup)
+                                {
+                                    LogMessage($"    → Backup skipped (Create backup option not selected)");
+                                }
                                 
-                                await _databaseService.CreateOrAlterStoredProcedureAsync(targetSettings, sp, createBackup: true);
+                                await _databaseService.CreateOrAlterStoredProcedureAsync(targetSettings, sp, createBackup: createBackup);
                                 completedOperations++;
                                 
                                 LogMessage($"    ✓ Success");
@@ -703,7 +789,40 @@ namespace DatabaseMigrationTool
 
         private void Server_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Auto-refresh databases when server selection changes
+            // Auto-fill connection settings when server is selected from history
+            if (cmbServer.SelectedItem != null && cmbServer.Tag is List<ConnectionSettings> connections)
+            {
+                var selectedServerName = cmbServer.SelectedItem.ToString();
+                var matchingConnection = connections.FirstOrDefault(c => c.ServerName.Equals(selectedServerName, StringComparison.OrdinalIgnoreCase));
+                
+                if (matchingConnection != null)
+                {
+                    // Auto-fill authentication settings
+                    chkWindowsAuth.IsChecked = matchingConnection.UseWindowsAuthentication;
+                    
+                    if (!matchingConnection.UseWindowsAuthentication)
+                    {
+                        // Fill username and password for SQL authentication
+                        txtUsername.Text = matchingConnection.Username;
+                        txtPassword.Password = matchingConnection.Password;
+                    }
+                    else
+                    {
+                        // Clear username and password for Windows authentication
+                        txtUsername.Text = "";
+                        txtPassword.Password = "";
+                    }
+                    
+                    // Trigger the auth panel visibility change
+                    WindowsAuth_Changed(chkWindowsAuth, new RoutedEventArgs());
+                    
+                    // Update last used
+                    _connectionService.UpdateLastUsed(matchingConnection);
+                    
+                    // Refresh target configuration display to ensure UI is updated
+                    UpdateTargetConfigurationDisplay();
+                }
+            }
         }
 
         private void SourceDatabase_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -803,8 +922,20 @@ namespace DatabaseMigrationTool
                     return;
                 }
 
-                // Check if we have target databases selected
-                var selectedTargetDbs = _targetDatabases?.Where(d => d.IsSelected).ToList();
+                // Check if we have target databases selected - handle both same server and different server modes
+                List<TargetDatabase>? selectedTargetDbs = null;
+                
+                if (_isDifferentServerMode && _differentServerDatabases != null)
+                {
+                    // Different server mode - check _differentServerDatabases
+                    selectedTargetDbs = _differentServerDatabases.Where(d => d.IsSelected).ToList();
+                }
+                else
+                {
+                    // Same server mode - check _targetDatabases
+                    selectedTargetDbs = _targetDatabases?.Where(d => d.IsSelected).ToList();
+                }
+                
                 if (selectedTargetDbs == null || !selectedTargetDbs.Any())
                 {
                     MessageBox.Show("Please select target databases first.", "No Target Databases", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -958,6 +1089,42 @@ namespace DatabaseMigrationTool
         private void TargetDatabaseCheckBox_Changed(object sender, RoutedEventArgs e)
         {
             UpdateTargetDatabaseCount();
+        }
+
+        private void TargetDatabaseSearch_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox searchBox)
+            {
+                var searchTerm = searchBox.Text?.ToLower() ?? string.Empty;
+                
+                // Get the current target databases collection
+                ObservableCollection<TargetDatabase> databasesToFilter;
+                
+                if (_isDifferentServerMode && _differentServerDatabases != null)
+                {
+                    databasesToFilter = _differentServerDatabases;
+                }
+                else
+                {
+                    databasesToFilter = _targetDatabases;
+                }
+                
+                // Filter and update the ListBox
+                if (string.IsNullOrWhiteSpace(searchTerm))
+                {
+                    // Show all databases when search is empty
+                    lstTargetDatabases.ItemsSource = databasesToFilter;
+                }
+                else
+                {
+                    // Filter databases based on search term
+                    var filteredDatabases = databasesToFilter
+                        .Where(db => db.Name.ToLower().Contains(searchTerm))
+                        .ToList();
+                    
+                    lstTargetDatabases.ItemsSource = filteredDatabases;
+                }
+            }
         }
 
         private void cmbSourceDatabase_SelectionChanged(object sender, SelectionChangedEventArgs e)

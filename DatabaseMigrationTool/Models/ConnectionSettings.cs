@@ -24,9 +24,33 @@ namespace DatabaseMigrationTool.Models
             }
         }
 
+        public string GetServerConnectionString()
+        {
+            if (UseWindowsAuthentication)
+            {
+                return $"Server={ServerName};Integrated Security=true;TrustServerCertificate=true;";
+            }
+            else
+            {
+                return $"Server={ServerName};User Id={Username};Password={Password};TrustServerCertificate=true;";
+            }
+        }
+
         public override string ToString()
         {
-            return $"{DisplayName} ({ServerName}\\{DatabaseName})";
+            if (UseWindowsAuthentication)
+            {
+                return $"{ServerName} (Windows Authentication)";
+            }
+            else
+            {
+                return $"{ServerName} (SQL Auth: {Username})";
+            }
+        }
+
+        public string GetUniqueKey()
+        {
+            return $"{ServerName}|{UseWindowsAuthentication}|{Username}";
         }
     }
 }
