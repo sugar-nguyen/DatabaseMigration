@@ -8,13 +8,13 @@
     <UseWPF>true</UseWPF>
     <ApplicationIcon>app-icon.ico</ApplicationIcon>
     <AssemblyTitle>Database Migration Tool</AssemblyTitle>
-    <AssemblyName>DatabaseMigrationTool_v1.0.0</AssemblyName>
+    <AssemblyName>DatabaseMigrationTool_v1.0.1</AssemblyName>
     <AssemblyDescription>A tool for migrating stored procedures between SQL Server databases</AssemblyDescription>
     <AssemblyCompany>Database Migration Solutions</AssemblyCompany>
     <AssemblyProduct>Database Migration Tool</AssemblyProduct>
     <Copyright>Copyright © 2025</Copyright>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
+    <FileVersion>1.0.1.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>

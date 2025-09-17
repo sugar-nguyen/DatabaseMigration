@@ -460,11 +460,28 @@
                                     <!-- Search Box -->
                                     <StackPanel Grid.Row="0" Margin="0,0,0,20">
                                         <Label Content="🔍 Search Stored Procedures" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                                        <TextBox Name="txtSearchProcedures" 
-                                            TextChanged="SearchProcedures_TextChanged"
-                                            FontSize="14" Height="35" 
-                                            Padding="10,8"
-                                            Foreground="Black"/>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox Name="txtSearchProcedures" 
+                                                Grid.Column="0"
+                                                FontSize="13" 
+                                                     Height="35" 
+                                                Padding="10,8"
+                                                Foreground="Black"
+                                                KeyDown="SearchTextBox_KeyDown"/>
+                                            <Button Name="btnSearchProcedures"
+                                                Grid.Column="1"
+                                                Content="🔍 Search"
+                                                Click="SearchProcedures_Click"
+                                                Width="100" Height="35"
+                                                Margin="10,0,0,0"
+                                                Background="{StaticResource PrimaryBrush}"
+                                                Foreground="White"
+                                                FontWeight="SemiBold"/>
+                                        </Grid>
                                     </StackPanel>
 
                                     <!-- Selection Controls -->
@@ -510,7 +527,9 @@
                                             Background="{StaticResource SurfaceBrush}"
                                             BorderThickness="0"
                                             Padding="10"
+                                            MaxHeight="300"
                                             ScrollViewer.CanContentScroll="True"
+                                            ScrollViewer.VerticalScrollBarVisibility="Auto"
                                             VirtualizingPanel.IsVirtualizing="True"
                                             VirtualizingPanel.VirtualizationMode="Recycling">
                                             <ListBox.ItemContainerStyle>
@@ -522,7 +541,7 @@
                                             </ListBox.ItemContainerStyle>
                                             <ListBox.ItemTemplate>
                                                 <DataTemplate>
-                                                    <StackPanel Orientation="Horizontal" Margin="4,2" Height="24">
+                                                    <StackPanel Orientation="Horizontal" Margin="4,2" >
                                                         <CheckBox IsChecked="{Binding IsSelected}" 
                                                                  Tag="{Binding}" 
                                                                  Checked="ProcedureCheckBox_Changed" 
@@ -552,12 +571,27 @@
                                     <!-- Search Box -->
                                     <StackPanel Grid.Row="0" Margin="0,0,0,20">
                                         <Label Content="🔍 Search Tables" FontWeight="SemiBold" Margin="0,0,0,8"/>
-                                        <TextBox Name="txtSearchTables" 
-                                            TextChanged="SearchTables_TextChanged"
-                                            FontSize="14" Height="35" 
-                                            Padding="10,8"
-                                            Foreground="Black"
-                                          />
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox Name="txtSearchTables" 
+                                                Grid.Column="0"
+                                                FontSize="14" Height="35" 
+                                                Padding="10,8"
+                                                Foreground="Black"
+                                                KeyDown="SearchTextBox_KeyDown"/>
+                                            <Button Name="btnSearchTables"
+                                                Grid.Column="1"
+                                                Content="🔍 Search"
+                                                Click="SearchTables_Click"
+                                                Width="100" Height="35"
+                                                Margin="10,0,0,0"
+                                                Background="{StaticResource PrimaryBrush}"
+                                                Foreground="White"
+                                                FontWeight="SemiBold"/>
+                                        </Grid>
                                     </StackPanel>
 
                                     <!-- Selection Controls -->
@@ -603,7 +637,9 @@
                                             Background="{StaticResource SurfaceBrush}"
                                             BorderThickness="0"
                                             Padding="10"
+                                            MaxHeight="300"
                                             ScrollViewer.CanContentScroll="True"
+                                            ScrollViewer.VerticalScrollBarVisibility="Auto"
                                             VirtualizingPanel.IsVirtualizing="True"
                                             VirtualizingPanel.VirtualizationMode="Recycling">
                                             <ListBox.ItemContainerStyle>

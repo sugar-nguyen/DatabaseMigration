@@ -48,7 +48,7 @@ namespace DatabaseMigrationTool.Services
                 throw new Exception($"Failed to retrieve databases: {ex.Message}");
             }
 
-            return databases.Where(x => !x.Contains("edoc", StringComparison.OrdinalIgnoreCase)).ToList();
+            return databases.Where(x => !new[] { "edoc" , "test"}.Contains(x,StringComparer.OrdinalIgnoreCase) ).ToList();
         }
 
         public async Task<List<StoredProcedure>> GetStoredProceduresAsync(ConnectionSettings settings)

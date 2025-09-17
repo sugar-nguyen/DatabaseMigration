@@ -36,11 +36,6 @@ namespace DatabaseMigrationTool
         private ConnectionSettings? _differentServerSettings;
         private ObservableCollection<TargetDatabase>? _differentServerDatabases;
 
-        // Search debounce timers
-        private DispatcherTimer? _procedureSearchTimer;
-        private DispatcherTimer? _tableSearchTimer;
-        private const int SearchDelayMs = 500; // 500ms delay
-
         public MainWindow()
         {
             InitializeComponent();
@@ -50,9 +45,6 @@ namespace DatabaseMigrationTool
             _tables = new List<Table>();
             _targetDatabases = new ObservableCollection<TargetDatabase>();
             _targetServerDatabases = new ObservableCollection<TargetDatabase>();
-
-            // Initialize search timers
-            InitializeSearchTimers();
 
             LoadConnectionHistory();
             UpdateTargetConfigurationDisplay();
@@ -846,22 +838,30 @@ namespace DatabaseMigrationTool
             // Handle tab changes
         }
 
-        private void SearchProcedures_TextChanged(object sender, TextChangedEventArgs e)
+        private void SearchProcedures_Click(object sender, RoutedEventArgs e)
         {
-            // Stop any existing timer
-            _procedureSearchTimer?.Stop();
-            
-            // Start new timer
-            _procedureSearchTimer?.Start();
+            PerformProcedureSearch();
         }
 
-        private void SearchTables_TextChanged(object sender, TextChangedEventArgs e)
+        private void SearchTables_Click(object sender, RoutedEventArgs e)
         {
-            // Stop any existing timer
-            _tableSearchTimer?.Stop();
-            
-            // Start new timer
-            _tableSearchTimer?.Start();
+            PerformTableSearch();
+        }
+
+        private void SearchTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                var textBox = sender as TextBox;
+                if (textBox?.Name == "txtSearchProcedures")
+                {
+                    PerformProcedureSearch();
+                }
+                else if (textBox?.Name == "txtSearchTables")
+                {
+                    PerformTableSearch();
+                }
+            }
         }
 
         private void ClearAll_Click(object sender, RoutedEventArgs e)
@@ -1042,11 +1042,15 @@ namespace DatabaseMigrationTool
 
         private void SelectAll_Checked(object sender, RoutedEventArgs e)
         {
-            if (_storedProcedures != null)
+            if (_storedProceduresView != null)
             {
-                foreach (var sp in _storedProcedures)
+                // Select only visible (filtered) items
+                foreach (var item in _storedProceduresView)
                 {
-                    sp.IsSelected = true;
+                    if (item is StoredProcedure sp)
+                    {
+                        sp.IsSelected = true;
+                    }
                 }
                 UpdateProcedureCount();
             }
@@ -1054,11 +1058,15 @@ namespace DatabaseMigrationTool
 
         private void SelectAll_Unchecked(object sender, RoutedEventArgs e)
         {
-            if (_storedProcedures != null)
+            if (_storedProceduresView != null)
             {
-                foreach (var sp in _storedProcedures)
+                // Unselect only visible (filtered) items
+                foreach (var item in _storedProceduresView)
                 {
-                    sp.IsSelected = false;
+                    if (item is StoredProcedure sp)
+                    {
+                        sp.IsSelected = false;
+                    }
                 }
                 UpdateProcedureCount();
             }
@@ -1066,11 +1074,15 @@ namespace DatabaseMigrationTool
 
         private void SelectAllTables_Checked(object sender, RoutedEventArgs e)
         {
-            if (_tables != null)
+            if (_tablesView != null)
             {
-                foreach (var table in _tables)
+                // Select only visible (filtered) items
+                foreach (var item in _tablesView)
                 {
-                    table.IsSelected = true;
+                    if (item is Table table)
+                    {
+                        table.IsSelected = true;
+                    }
                 }
                 UpdateTableCount();
             }
@@ -1078,11 +1090,15 @@ namespace DatabaseMigrationTool
 
         private void SelectAllTables_Unchecked(object sender, RoutedEventArgs e)
         {
-            if (_tables != null)
+            if (_tablesView != null)
             {
-                foreach (var table in _tables)
+                // Unselect only visible (filtered) items
+                foreach (var item in _tablesView)
                 {
-                    table.IsSelected = false;
+                    if (item is Table table)
+                    {
+                        table.IsSelected = false;
+                    }
                 }
                 UpdateTableCount();
             }
@@ -1201,31 +1217,6 @@ namespace DatabaseMigrationTool
                     originalDb.IsSelected = true;
                 }
             }
-        }
-
-        private void InitializeSearchTimers()
-        {
-            // Initialize procedure search timer
-            _procedureSearchTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(SearchDelayMs)
-            };
-            _procedureSearchTimer.Tick += (sender, e) =>
-            {
-                _procedureSearchTimer?.Stop();
-                PerformProcedureSearch();
-            };
-
-            // Initialize table search timer
-            _tableSearchTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromMilliseconds(SearchDelayMs)
-            };
-            _tableSearchTimer.Tick += (sender, e) =>
-            {
-                _tableSearchTimer?.Stop();
-                PerformTableSearch();
-            };
         }
 
         private void PerformProcedureSearch()

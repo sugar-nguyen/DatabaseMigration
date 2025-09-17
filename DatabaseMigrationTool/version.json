@@ -1,9 +1,9 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "productName": "Database Migration Tool",
   "companyName": "Database Migration Solutions",
   "description": "A tool for migrating stored procedures between SQL Server databases",
   "copyright": "Copyright © 2025",
   "autoIncrement": true,
-  "buildNumber": 4
+  "buildNumber": 7
 }
