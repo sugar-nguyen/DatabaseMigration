@@ -829,8 +829,37 @@ namespace DatabaseMigrationTool
 
         private void SourceDatabase_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            //
-           
+            // Only apply source database exclusion when in same server mode
+            if (cmbSourceDatabase.SelectedItem != null && _targetDatabases != null && !_isDifferentServerMode)
+            {
+                var selectedSourceDb = cmbSourceDatabase.SelectedItem.ToString();
+                
+                // Re-add previously selected source database back to target list
+                if (e.RemovedItems.Count > 0)
+                {
+                    var previousSourceDb = e.RemovedItems[0]?.ToString();
+                    if (!string.IsNullOrEmpty(previousSourceDb))
+                    {
+                        var existsInTargets = _targetDatabases.Any(db => db.Name == previousSourceDb);
+                        if (!existsInTargets)
+                        {
+                            _targetDatabases.Add(new TargetDatabase { Name = previousSourceDb, IsSelected = false });
+                            LogMessage($"Re-added previous source database '{previousSourceDb}' back to target databases (same server mode)");
+                        }
+                    }
+                }
+                
+                // Remove current source database from target databases list to prevent self-migration
+                var sourceDbInTargets = _targetDatabases.FirstOrDefault(db => db.Name == selectedSourceDb);
+                if (sourceDbInTargets != null)
+                {
+                    _targetDatabases.Remove(sourceDbInTargets);
+                    LogMessage($"Removed source database '{selectedSourceDb}' from target databases to prevent self-migration (same server mode)");
+                }
+                
+                // Update target database count display
+                UpdateTargetConfigurationDisplay();
+            }
         }
 
         private void TabDatabaseObjects_SelectionChanged(object sender, SelectionChangedEventArgs e)
