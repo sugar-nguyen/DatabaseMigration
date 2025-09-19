@@ -5,5 +5,5 @@
   "description": "A tool for migrating stored procedures between SQL Server databases",
   "copyright": "Copyright © 2025",
   "autoIncrement": true,
-  "buildNumber": 7
+  "buildNumber": 8
 }

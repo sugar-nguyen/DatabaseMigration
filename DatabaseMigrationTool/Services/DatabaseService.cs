@@ -40,6 +40,10 @@ namespace DatabaseMigrationTool.Services
 
                 while (await reader.ReadAsync())
                 {
+                    var name = reader.GetString(0);
+                    if (name.Contains("edoc", StringComparison.OrdinalIgnoreCase) || name.Contains("test", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
                     databases.Add(reader.GetString(0));
                 }
             }
@@ -48,7 +52,7 @@ namespace DatabaseMigrationTool.Services
                 throw new Exception($"Failed to retrieve databases: {ex.Message}");
             }
 
-            return databases.Where(x => !new[] { "edoc" , "test"}.Contains(x,StringComparer.OrdinalIgnoreCase) ).ToList();
+            return databases;
         }
 
         public async Task<List<StoredProcedure>> GetStoredProceduresAsync(ConnectionSettings settings)
@@ -624,20 +628,21 @@ namespace DatabaseMigrationTool.Services
                 {
                     if (replaceIfExists)
                     {
-                        // Drop the existing table and recreate it
-                        var dropCommand = new SqlCommand($"DROP TABLE [{table.Schema}].[{table.Name}]", connection, transaction);
-                        await dropCommand.ExecuteNonQueryAsync();
+                        //// Drop the existing table and recreate it
+                        //var dropCommand = new SqlCommand($"DROP TABLE [{table.Schema}].[{table.Name}]", connection, transaction);
+                        //await dropCommand.ExecuteNonQueryAsync();
 
-                        // Create the table using the definition
-                        if (!string.IsNullOrEmpty(table.Definition))
-                        {
-                            var command = new SqlCommand(table.Definition, connection, transaction);
-                            await command.ExecuteNonQueryAsync();
-                        }
-                        else
-                        {
-                            throw new Exception($"No table definition available for {table.FullName}");
-                        }
+                        //// Create the table using the definition
+                        //if (!string.IsNullOrEmpty(table.Definition))
+                        //{
+                        //    var command = new SqlCommand(table.Definition, connection, transaction);
+                        //    await command.ExecuteNonQueryAsync();
+                        //}
+                        //else
+                        //{
+                        //    throw new Exception($"No table definition available for {table.FullName}");
+                        //}
+                        throw new Exception($"Cannot drop table {table.FullName}");
                     }
                     else
                     {

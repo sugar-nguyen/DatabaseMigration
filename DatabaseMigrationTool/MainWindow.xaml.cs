@@ -279,7 +279,6 @@ namespace DatabaseMigrationTool
                 // Load stored procedures
                 LogMessage("Loading stored procedures...");
                 var procedures = await _databaseService.GetStoredProceduresAsync(settings);
-
                 _storedProcedures = procedures.Select(sp => new StoredProcedure
                 {
                     Schema = sp.Schema,
@@ -830,7 +829,8 @@ namespace DatabaseMigrationTool
 
         private void SourceDatabase_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // Auto-load objects when database is selected
+            //
+           
         }
 
         private void TabDatabaseObjects_SelectionChanged(object sender, SelectionChangedEventArgs e)
