@@ -1,11 +1,7 @@
-using Microsoft.Data.SqlClient;
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using DatabaseMigrationTool.Models;
+using Microsoft.Data.SqlClient;
+using System.Data;
+using System.Text;
 
 namespace DatabaseMigrationTool.Services
 {
@@ -865,6 +861,151 @@ namespace DatabaseMigrationTool.Services
             createTableScript.AppendLine(");");
 
             return createTableScript.ToString();
+        }
+
+        /// <summary>
+        /// Builds connection string for a specific database
+        /// </summary>
+        public string BuildConnectionString(ConnectionSettings settings, string database)
+        {
+            return settings.GetConnectionString().Replace($"Database={settings.DatabaseName};", $"Database={database};");
+        }
+
+        /// <summary>
+        /// Gets the definition of a stored procedure
+        /// </summary>
+        public async Task<string> GetProcedureDefinitionAsync(ConnectionSettings settings, string database, string procedureName)
+        {
+            try
+            {
+                var connectionString = BuildConnectionString(settings, database);
+                using var connection = new SqlConnection(connectionString);
+                await connection.OpenAsync();
+
+                var query = @"
+                    SELECT OBJECT_DEFINITION(OBJECT_ID(@ProcedureName))";
+
+                using var command = new SqlCommand(query, connection);
+                command.Parameters.AddWithValue("@ProcedureName", procedureName);
+
+                var result = await command.ExecuteScalarAsync();
+                return result?.ToString() ?? string.Empty;
+            }
+            catch (Exception)
+            {
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Checks if a stored procedure exists
+        /// </summary>
+        public async Task<bool> ProcedureExistsAsync(ConnectionSettings settings, string database, string procedureName)
+        {
+            try
+            {
+                var connectionString = BuildConnectionString(settings, database);
+                using var connection = new SqlConnection(connectionString);
+                await connection.OpenAsync();
+
+                var query = @"
+                    SELECT COUNT(*)
+                    FROM INFORMATION_SCHEMA.ROUTINES 
+                    WHERE ROUTINE_NAME = @ProcedureName 
+                    AND ROUTINE_TYPE = 'PROCEDURE'";
+
+                using var command = new SqlCommand(query, connection);
+                command.Parameters.AddWithValue("@ProcedureName", procedureName);
+
+                var result = await command.ExecuteScalarAsync();
+                return Convert.ToInt32(result) > 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Drops a stored procedure if it exists
+        /// </summary>
+        public async Task<bool> DropProcedureAsync(ConnectionSettings settings, string database, string procedureName)
+        {
+            try
+            {
+                var connectionString = BuildConnectionString(settings, database);
+                using var connection = new SqlConnection(connectionString);
+                await connection.OpenAsync();
+
+                var dropScript = $"DROP PROCEDURE IF EXISTS [{procedureName}]";
+                using var command = new SqlCommand(dropScript, connection);
+                await command.ExecuteNonQueryAsync();
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Creates or alters a stored procedure from definition
+        /// </summary>
+        public async Task<bool> CreateOrAlterProcedureAsync(ConnectionSettings settings, string database, string procedureDefinition)
+        {
+            try
+            {
+                var connectionString = BuildConnectionString(settings, database);
+                using var connection = new SqlConnection(connectionString);
+                await connection.OpenAsync();
+
+                using var command = new SqlCommand(procedureDefinition, connection);
+                await command.ExecuteNonQueryAsync();
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets list of procedures that match a pattern (for finding backups)
+        /// </summary>
+        public async Task<List<string>> GetProceduresByPatternAsync(ConnectionSettings settings, string database, string pattern)
+        {
+            var procedures = new List<string>();
+
+            try
+            {
+                var connectionString = BuildConnectionString(settings, database);
+                using var connection = new SqlConnection(connectionString);
+                await connection.OpenAsync();
+
+                var query = @"
+                    SELECT ROUTINE_NAME
+                    FROM INFORMATION_SCHEMA.ROUTINES 
+                    WHERE ROUTINE_TYPE = 'PROCEDURE'
+                    AND ROUTINE_NAME LIKE @Pattern
+                    ORDER BY ROUTINE_NAME";
+
+                using var command = new SqlCommand(query, connection);
+                command.Parameters.AddWithValue("@Pattern", pattern);
+
+                using var reader = await command.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    procedures.Add(reader.GetString(0));
+                }
+            }
+            catch
+            {
+                // Return empty list on error
+            }
+
+            return procedures;
         }
     }
 }

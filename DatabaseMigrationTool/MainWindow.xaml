@@ -91,6 +91,21 @@
             </Style.Triggers>
         </Style>
 
+        <!-- Danger Button Style -->
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+            <Setter Property="Background" Value="{StaticResource DangerBrush}"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#DC2626"/>
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="{StaticResource MutedTextBrush}"/>
+                    <Setter Property="Foreground" Value="#A0A0A0"/>
+                    <Setter Property="Opacity" Value="0.6"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- Modern Card Style -->
         <Style x:Key="Card" TargetType="Border">
             <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
@@ -693,6 +708,13 @@
                                     Margin="0,0,0,15"
                                    HorizontalAlignment="Stretch"/>
                                    
+                            <Button Name="btnRollback" Content="↩️ Rollback Migration" 
+                                   Style="{StaticResource DangerButton}" 
+                                   Click="Rollback_Click" 
+                                   Margin="0,0,0,15"
+                                   HorizontalAlignment="Stretch"
+                                   IsEnabled="False"/>
+                                   
                             <Separator Margin="0,30,0,25" Background="{StaticResource BorderBrush}"/>
                             
                             <!-- Migration Options -->
@@ -745,6 +767,116 @@
                                         <TextBlock Grid.Column="1" Text="0%" FontWeight="Bold" FontSize="13"/>
                                     </Grid>
                                 </StackPanel>
+                            </Border>
+                            
+                            <!-- Rollback History -->
+                            <TextBlock Text="📜 Rollback History" FontWeight="SemiBold" 
+                                      Foreground="{StaticResource TextBrush}" 
+                                      HorizontalAlignment="Center" Margin="0,20,0,15"
+                                      FontSize="16"/>
+                            
+                            <Border Background="{StaticResource BackgroundBrush}" 
+                                   BorderBrush="{StaticResource BorderBrush}"
+                                   BorderThickness="1" CornerRadius="12" Padding="15"
+                                   MaxHeight="200">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <ListBox Name="lstRollbackHistory"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            SelectionMode="Single">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="{StaticResource SurfaceBrush}"
+                                                       BorderBrush="{StaticResource BorderBrush}"
+                                                       BorderThickness="1" 
+                                                       CornerRadius="8" 
+                                                       Margin="0,2" 
+                                                       Padding="10">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        
+                                                        <StackPanel Grid.Column="0">
+                                                            <TextBlock Text="{Binding MigrationTimestamp, StringFormat='Migration: {0:yyyy-MM-dd HH:mm:ss}'}" 
+                                                                      FontWeight="SemiBold" FontSize="12"
+                                                                      Foreground="{StaticResource TextBrush}"/>
+                                                            <TextBlock Text="{Binding TargetDatabasesCount, StringFormat=\{0\} target databases}" 
+                                                                      FontSize="11"
+                                                                      Foreground="{StaticResource MutedTextBrush}"/>
+                                                            <TextBlock Text="{Binding BackupCount, StringFormat=\{0\} procedures backed up}" 
+                                                                      FontSize="11"
+                                                                      Foreground="{StaticResource MutedTextBrush}"/>
+                                                            <!-- Status indicator -->
+                                                            <TextBlock FontSize="10" FontWeight="SemiBold" Margin="0,2,0,0">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding CanRollback}" Value="True">
+                                                                                <Setter Property="Text" Value="✓ Available for rollback"/>
+                                                                                <Setter Property="Foreground" Value="{StaticResource AccentBrush}"/>
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding CanRollback}" Value="False">
+                                                                                <Setter Property="Text" Value="✗ Already rolled back"/>
+                                                                                <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                        
+                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                            <Button Content="↩️" 
+                                                                   Style="{StaticResource DangerButton}"
+                                                                   Width="30" Height="30" 
+                                                                   FontSize="12" Padding="2"
+                                                                   Click="RollbackItem_Click"
+                                                                   Tag="{Binding}"
+                                                                   IsEnabled="{Binding CanRollback}">
+                                                                <Button.ToolTip>
+                                                                    <ToolTip>
+                                                                        <StackPanel>
+                                                                            <TextBlock FontWeight="SemiBold">
+                                                                                <TextBlock.Style>
+                                                                                    <Style TargetType="TextBlock">
+                                                                                        <Style.Triggers>
+                                                                                            <DataTrigger Binding="{Binding CanRollback}" Value="True">
+                                                                                                <Setter Property="Text" Value="Rollback this migration"/>
+                                                                                            </DataTrigger>
+                                                                                            <DataTrigger Binding="{Binding CanRollback}" Value="False">
+                                                                                                <Setter Property="Text" Value="Already rolled back"/>
+                                                                                            </DataTrigger>
+                                                                                        </Style.Triggers>
+                                                                                    </Style>
+                                                                                </TextBlock.Style>
+                                                                            </TextBlock>
+                                                                            <TextBlock FontSize="11" Foreground="Gray">
+                                                                                <TextBlock.Style>
+                                                                                    <Style TargetType="TextBlock">
+                                                                                        <Style.Triggers>
+                                                                                            <DataTrigger Binding="{Binding CanRollback}" Value="True">
+                                                                                                <Setter Property="Text" Value="Click to restore procedures from backup"/>
+                                                                                            </DataTrigger>
+                                                                                            <DataTrigger Binding="{Binding CanRollback}" Value="False">
+                                                                                                <Setter Property="Text" Value="This migration has already been rolled back"/>
+                                                                                            </DataTrigger>
+                                                                                        </Style.Triggers>
+                                                                                    </Style>
+                                                                                </TextBlock.Style>
+                                                                            </TextBlock>
+                                                                        </StackPanel>
+                                                                    </ToolTip>
+                                                                </Button.ToolTip>
+                                                            </Button>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </ScrollViewer>
                             </Border>
                         </StackPanel>
                     </GroupBox>

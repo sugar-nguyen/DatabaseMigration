@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <ApplicationIcon>app-icon.ico</ApplicationIcon>
     <AssemblyTitle>Database Migration Tool</AssemblyTitle>
     <AssemblyName>DatabaseMigrationTool_v1.0.2</AssemblyName>
@@ -24,7 +25,9 @@
 
   <ItemGroup>
     <Resource Include="app-icon.png" />
-    <Content Include="app-icon.ico" />
+    <Content Include="app-icon.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

@@ -1,19 +1,14 @@
-using System;
-using System.Collections.Generic;
+using DatabaseMigrationTool.Models;
+using DatabaseMigrationTool.Services;
+using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
-using System.Windows.Threading;
-using Microsoft.Win32;
-using DatabaseMigrationTool.Models;
-using DatabaseMigrationTool.Services;
 
 namespace DatabaseMigrationTool
 {
@@ -24,12 +19,14 @@ namespace DatabaseMigrationTool
     {
         private readonly DatabaseService _databaseService;
         private readonly ConnectionSettingsService _connectionService;
+        private readonly RollbackService _rollbackService;
         private List<StoredProcedure> _storedProcedures;
         private List<Table> _tables;
         private ObservableCollection<TargetDatabase> _targetDatabases;
         private ObservableCollection<TargetDatabase> _targetServerDatabases; // For different server
         private ICollectionView? _storedProceduresView;
         private ICollectionView? _tablesView;
+        private ObservableCollection<RollbackRecord> _rollbackHistory;
 
         // Track current target server mode
         private bool _isDifferentServerMode = false;
@@ -41,13 +38,23 @@ namespace DatabaseMigrationTool
             InitializeComponent();
             _databaseService = new DatabaseService();
             _connectionService = new ConnectionSettingsService();
+            _rollbackService = new RollbackService(_databaseService);
             _storedProcedures = new List<StoredProcedure>();
             _tables = new List<Table>();
             _targetDatabases = new ObservableCollection<TargetDatabase>();
             _targetServerDatabases = new ObservableCollection<TargetDatabase>();
+            _rollbackHistory = new ObservableCollection<RollbackRecord>();
+
+            // Subscribe to rollback service events
+            _rollbackService.LogMessage += (message) => LogMessage(message);
+            _rollbackService.ProgressChanged += (progress) => 
+            {
+                // Update progress if needed - implement later
+            };
 
             LoadConnectionHistory();
             UpdateTargetConfigurationDisplay();
+            LoadRollbackHistory();
             
             // Initialize Migration Log after the window is loaded
             this.Loaded += MainWindow_Loaded;
@@ -564,6 +571,36 @@ namespace DatabaseMigrationTool
                 if (errorCount == 0)
                 {
                     LogMessage("🎉 All operations completed successfully!");
+                    
+                    // Record migration for rollback if backup was created
+                    if (chkCreateBackup != null && (chkCreateBackup.IsChecked ?? false))
+                    {
+                        LogMessage("📝 Recording migration information for rollback...");
+                        try
+                        {
+                            var sourceDatabase = cmbSourceDatabase?.Text ?? "";
+                            var migrationSettings = $"Migration on {DateTime.Now:yyyy-MM-dd HH:mm:ss}"; // Simple settings string
+                            var currentSettings = GetCurrentConnectionSettings();
+                            
+                            await _rollbackService.RecordMigrationAsync(
+                                sourceDatabase,
+                                targetDatabases.Select(td => td.Name).ToList(),
+                                selectedProcedures,
+                                selectedTables,
+                                migrationSettings,
+                                currentSettings
+                            );
+                            
+                            LogMessage("✓ Migration recorded for rollback successfully");
+                            
+                            // Refresh rollback history in UI
+                            LoadRollbackHistory();
+                        }
+                        catch (Exception rollbackEx)
+                        {
+                            LogMessage($"⚠️  Warning: Could not record migration for rollback: {rollbackEx.Message}");
+                        }
+                    }
                 }
                 else
                 {
@@ -1295,6 +1332,180 @@ namespace DatabaseMigrationTool
                     };
                 }
                 _tablesView.Refresh();
+            }
+        }
+
+        #endregion
+
+        #region Rollback Methods
+
+        /// <summary>
+        /// Loads rollback history and binds to UI
+        /// </summary>
+        private void LoadRollbackHistory()
+        {
+            try
+            {
+                var history = _rollbackService.GetRollbackHistory();
+                _rollbackHistory.Clear();
+                foreach (var record in history)
+                {
+                    _rollbackHistory.Add(record);
+                }
+                
+                // Bind to the ListBox
+                if (lstRollbackHistory != null)
+                {
+                    lstRollbackHistory.ItemsSource = _rollbackHistory;
+                }
+
+                // Enable rollback button if there are rollback records
+                if (btnRollback != null)
+                {
+                    btnRollback.IsEnabled = _rollbackHistory.Any();
+                }
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"Error loading rollback history: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Rollback button click handler
+        /// </summary>
+        private async void Rollback_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_rollbackHistory.Count == 0)
+                {
+                    MessageBox.Show("No rollback history available.", "No Rollback Data", 
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                // Show rollback selection dialog
+                var latestRecord = _rollbackHistory.FirstOrDefault();
+                if (latestRecord == null) return;
+
+                var result = MessageBox.Show(
+                    $"Do you want to rollback the latest migration?\n\n" +
+                    $"Migration Date: {latestRecord.MigrationTimestamp:yyyy-MM-dd HH:mm:ss}\n" +
+                    $"Source Database: {latestRecord.SourceDatabase}\n" +
+                    $"Target Databases: {latestRecord.TargetDatabasesCount}\n" +
+                    $"Backup Items: {latestRecord.BackupCount}\n\n" +
+                    $"This will restore stored procedures from their backups.",
+                    "Confirm Rollback", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+                if (result != MessageBoxResult.Yes) return;
+
+                LogMessage("=== Starting Rollback Process ===");
+                SetStatus("Rolling back migration...");
+                btnRollback.IsEnabled = false;
+
+                var settings = GetCurrentConnectionSettings();
+                if (settings == null)
+                {
+                    MessageBox.Show("Please configure connection settings first.", "Connection Required", 
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var rollbackResult = await _rollbackService.RollbackMigrationAsync(latestRecord, settings);
+
+                if (rollbackResult.Success)
+                {
+                    SetStatus("Rollback completed successfully");
+                    MessageBox.Show(rollbackResult.Message, "Rollback Successful", 
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    SetStatus("Rollback completed with errors");
+                    var errorDetails = rollbackResult.Errors.Count > 0 
+                        ? "\n\nErrors:\n" + string.Join("\n", rollbackResult.Errors.Take(5))
+                        : "";
+                    
+                    MessageBox.Show(rollbackResult.Message + errorDetails, "Rollback Issues", 
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+
+                // Refresh rollback history
+                LoadRollbackHistory();
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"Error during rollback: {ex.Message}");
+                MessageBox.Show($"Rollback failed: {ex.Message}", "Rollback Error", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                btnRollback.IsEnabled = _rollbackHistory.Any();
+                SetStatus("Ready");
+            }
+        }
+
+        /// <summary>
+        /// Individual rollback item button click handler
+        /// </summary>
+        private async void RollbackItem_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (sender is Button button && button.Tag is RollbackRecord record)
+                {
+                    var result = MessageBox.Show(
+                        $"Do you want to rollback this specific migration?\n\n" +
+                        $"Migration Date: {record.MigrationTimestamp:yyyy-MM-dd HH:mm:ss}\n" +
+                        $"Source Database: {record.SourceDatabase}\n" +
+                        $"Target Databases: {record.TargetDatabasesCount}\n" +
+                        $"Backup Items: {record.BackupCount}",
+                        "Confirm Rollback", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                    if (result != MessageBoxResult.Yes) return;
+
+                    LogMessage($"=== Starting Rollback for Migration {record.Id} ===");
+                    SetStatus("Rolling back migration...");
+
+                    var settings = GetCurrentConnectionSettings();
+                    if (settings == null)
+                    {
+                        MessageBox.Show("Please configure connection settings first.", "Connection Required", 
+                            MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
+                    var rollbackResult = await _rollbackService.RollbackMigrationAsync(record, settings);
+
+                    if (rollbackResult.Success)
+                    {
+                        MessageBox.Show(rollbackResult.Message, "Rollback Successful", 
+                            MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        var errorDetails = rollbackResult.Errors.Count > 0 
+                            ? "\n\nFirst few errors:\n" + string.Join("\n", rollbackResult.Errors.Take(3))
+                            : "";
+                        
+                        MessageBox.Show(rollbackResult.Message + errorDetails, "Rollback Issues", 
+                            MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
+
+                    LoadRollbackHistory();
+                }
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"Error during item rollback: {ex.Message}");
+                MessageBox.Show($"Rollback failed: {ex.Message}", "Rollback Error", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                SetStatus("Ready");
             }
         }
 
