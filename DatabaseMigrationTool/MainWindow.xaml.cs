@@ -55,7 +55,6 @@ namespace DatabaseMigrationTool
             LoadConnectionHistory();
             UpdateTargetConfigurationDisplay();
             LoadRollbackHistory();
-            
             // Initialize Migration Log after the window is loaded
             this.Loaded += MainWindow_Loaded;
         }

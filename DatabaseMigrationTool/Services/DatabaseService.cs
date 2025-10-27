@@ -2,6 +2,7 @@ using DatabaseMigrationTool.Models;
 using Microsoft.Data.SqlClient;
 using System.Data;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace DatabaseMigrationTool.Services
 {
@@ -91,43 +92,6 @@ namespace DatabaseMigrationTool.Services
             return storedProcedures;
         }
 
-        public async Task<bool> DatabaseExistsAsync(ConnectionSettings settings, string databaseName)
-        {
-            try
-            {
-                var connectionString = settings.GetConnectionString().Replace($"Database={settings.DatabaseName};", "Database=master;");
-                using var connection = new SqlConnection(connectionString);
-                await connection.OpenAsync();
-
-                var command = new SqlCommand("SELECT COUNT(*) FROM sys.databases WHERE name = @dbName", connection);
-                command.Parameters.AddWithValue("@dbName", databaseName);
-
-                var result = await command.ExecuteScalarAsync();
-                var count = result != null ? (int)result : 0;
-                return count > 0;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public async Task CreateDatabaseAsync(ConnectionSettings settings, string databaseName)
-        {
-            try
-            {
-                var connectionString = settings.GetConnectionString().Replace($"Database={settings.DatabaseName};", "Database=master;");
-                using var connection = new SqlConnection(connectionString);
-                await connection.OpenAsync();
-
-                var command = new SqlCommand($"CREATE DATABASE [{databaseName}]", connection);
-                await command.ExecuteNonQueryAsync();
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to create database '{databaseName}': {ex.Message}");
-            }
-        }
 
         public async Task<bool> StoredProcedureExistsAsync(ConnectionSettings settings, string schemaName, string procedureName)
         {
@@ -176,7 +140,7 @@ namespace DatabaseMigrationTool.Services
                     }
 
                     // Modify the stored procedure definition to use ALTER if it exists, CREATE if it doesn't
-                    var modifiedDefinition = await PrepareStoredProcedureDefinitionAsync(sp.Definition, sp.Schema, sp.Name, procedureExists);
+                    var modifiedDefinition = PrepareStoredProcedureDefinition(sp.Definition, sp.Schema, sp.Name, procedureExists);
 
                     // Execute the stored procedure
                     var command = new SqlCommand(modifiedDefinition, connection, transaction);
@@ -212,58 +176,32 @@ namespace DatabaseMigrationTool.Services
             return count > 0;
         }
 
-        private async Task<string> PrepareStoredProcedureDefinitionAsync(string originalDefinition, string schemaName, string procedureName, bool procedureExists)
+        private string PrepareStoredProcedureDefinition(string originalDefinition, string schemaName, string procedureName, bool procedureExists)
         {
-            await Task.CompletedTask; // Make it async for potential future database calls
-
-            // Define possible patterns for procedure creation
-            var patterns = new[]
-            {
-                $"CREATE PROCEDURE [{schemaName}].[{procedureName}]",
-                $"CREATE PROC [{schemaName}].[{procedureName}]",
-                $"CREATE PROCEDURE {schemaName}.{procedureName}",
-                $"CREATE PROC {schemaName}.{procedureName}",
-                $"CREATE PROCEDURE [{procedureName}]",
-                $"CREATE PROC [{procedureName}]",
-                $"CREATE PROCEDURE {procedureName}",
-                $"CREATE PROC {procedureName}"
-            };
-
-            var alterPatterns = new[]
-            {
-                $"ALTER PROCEDURE [{schemaName}].[{procedureName}]",
-                $"ALTER PROC [{schemaName}].[{procedureName}]",
-                $"ALTER PROCEDURE {schemaName}.{procedureName}",
-                $"ALTER PROC {schemaName}.{procedureName}",
-                $"ALTER PROCEDURE [{procedureName}]",
-                $"ALTER PROC [{procedureName}]",
-                $"ALTER PROCEDURE {procedureName}",
-                $"ALTER PROC {procedureName}"
-            };
-
             string modifiedDefinition = originalDefinition;
 
-            if (procedureExists)
-            {
-                // Replace CREATE with ALTER if procedure exists
-                foreach (var pattern in patterns)
-                {
-                    var alterPattern = pattern.Replace("CREATE", "ALTER");
-                    modifiedDefinition = modifiedDefinition.Replace(pattern, alterPattern, StringComparison.OrdinalIgnoreCase);
-                }
-            }
-            else
-            {
-                // Replace ALTER with CREATE if procedure doesn't exist
-                foreach (var pattern in alterPatterns)
-                {
-                    var createPattern = pattern.Replace("ALTER", "CREATE");
-                    modifiedDefinition = modifiedDefinition.Replace(pattern, createPattern, StringComparison.OrdinalIgnoreCase);
-                }
-            }
+            // Nếu thủ tục đã tồn tại → thay CREATE => ALTER
+            // Nếu chưa tồn tại → thay ALTER => CREATE
+            string searchWord = procedureExists ? "CREATE" : "ALTER";
+            string replaceWord = procedureExists ? "ALTER" : "CREATE";
+
+            // Regex linh hoạt để match toàn bộ phần khai báo đầu thủ tục
+            // Bao gồm:
+            // - CREATE hoặc ALTER (case-insensitive)
+            // - PROC hoặc PROCEDURE
+            // - Khoảng trắng, xuống dòng, schema có hoặc không
+            // - Tên proc (có hoặc không có [])
+            string pattern = $@"(?i)\b(?:CREATE|ALTER)\b\s+(?:PROCEDURE|PROC)\s+(?:\[[^\]]+\]\.)?\[?[A-Za-z0-9_]+\]?";
+
+            // Chuẩn hóa lại thành format: CREATE/ALTER PROCEDURE [schema].[procedureName]
+            string replacement = $"{replaceWord} PROCEDURE [{schemaName}].[{procedureName}]";
+
+            modifiedDefinition = Regex.Replace(modifiedDefinition, pattern, replacement, RegexOptions.IgnoreCase);
 
             return modifiedDefinition;
         }
+
+
 
         private async Task CreateBackupStoredProcedureAsync(SqlConnection connection, SqlTransaction transaction, StoredProcedure sp)
         {
@@ -284,20 +222,8 @@ namespace DatabaseMigrationTool.Services
             if (!string.IsNullOrEmpty(currentDefinition))
             {
                 var backupName = $"{sp.Name}_{DateTime.Now:ddMMyyyy}";
-                var backupDefinition = currentDefinition.Replace($"CREATE PROCEDURE [{sp.Schema}].[{sp.Name}]", $"CREATE PROCEDURE [{sp.Schema}].[{backupName}]", StringComparison.OrdinalIgnoreCase)
-                                                    .Replace($"CREATE PROC [{sp.Schema}].[{sp.Name}]", $"CREATE PROC [{sp.Schema}].[{backupName}]", StringComparison.OrdinalIgnoreCase)
-                                                    .Replace($"ALTER PROCEDURE [{sp.Schema}].[{sp.Name}]", $"CREATE PROCEDURE [{sp.Schema}].[{backupName}]", StringComparison.OrdinalIgnoreCase)
-                                                    .Replace($"ALTER PROC [{sp.Schema}].[{sp.Name}]", $"CREATE PROC [{sp.Schema}].[{backupName}]", StringComparison.OrdinalIgnoreCase);
-                //check is exists backupName
                 var isExists = await StoredProcedureExistsInTransactionAsync(connection, transaction, sp.Schema, backupName);
-                if (isExists)
-                {
-                    //convert backupDefinition to ALTER
-                    backupDefinition = backupDefinition.Replace($"CREATE PROCEDURE [{sp.Schema}].[{backupName}]", $"ALTER PROCEDURE [{sp.Schema}].[{backupName}]", StringComparison.OrdinalIgnoreCase)
-                                                    .Replace($"CREATE PROC [{sp.Schema}].[{backupName}]", $"ALTER PROC [{sp.Schema}].[{backupName}]", StringComparison.OrdinalIgnoreCase);
-                }
-
-
+                var backupDefinition = PrepareStoredProcedureDefinition(currentDefinition, sp.Schema, backupName, isExists);
 
                 var backupCommand = new SqlCommand(backupDefinition, connection, transaction);
                 await backupCommand.ExecuteNonQueryAsync();
@@ -907,6 +833,6 @@ namespace DatabaseMigrationTool.Services
             }
         }
 
-       
+
     }
 }
