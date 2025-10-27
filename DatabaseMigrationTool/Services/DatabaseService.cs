@@ -285,9 +285,19 @@ namespace DatabaseMigrationTool.Services
             {
                 var backupName = $"{sp.Name}_{DateTime.Now:ddMMyyyy}";
                 var backupDefinition = currentDefinition.Replace($"CREATE PROCEDURE [{sp.Schema}].[{sp.Name}]", $"CREATE PROCEDURE [{sp.Schema}].[{backupName}]", StringComparison.OrdinalIgnoreCase)
-                                                      .Replace($"CREATE PROC [{sp.Schema}].[{sp.Name}]", $"CREATE PROC [{sp.Schema}].[{backupName}]", StringComparison.OrdinalIgnoreCase)
-                                                      .Replace($"ALTER PROCEDURE [{sp.Schema}].[{sp.Name}]", $"CREATE PROCEDURE [{sp.Schema}].[{backupName}]", StringComparison.OrdinalIgnoreCase)
-                                                      .Replace($"ALTER PROC [{sp.Schema}].[{sp.Name}]", $"CREATE PROC [{sp.Schema}].[{backupName}]", StringComparison.OrdinalIgnoreCase);
+                                                    .Replace($"CREATE PROC [{sp.Schema}].[{sp.Name}]", $"CREATE PROC [{sp.Schema}].[{backupName}]", StringComparison.OrdinalIgnoreCase)
+                                                    .Replace($"ALTER PROCEDURE [{sp.Schema}].[{sp.Name}]", $"CREATE PROCEDURE [{sp.Schema}].[{backupName}]", StringComparison.OrdinalIgnoreCase)
+                                                    .Replace($"ALTER PROC [{sp.Schema}].[{sp.Name}]", $"CREATE PROC [{sp.Schema}].[{backupName}]", StringComparison.OrdinalIgnoreCase);
+                //check is exists backupName
+                var isExists = await StoredProcedureExistsInTransactionAsync(connection, transaction, sp.Schema, backupName);
+                if (isExists)
+                {
+                    //convert backupDefinition to ALTER
+                    backupDefinition = backupDefinition.Replace($"CREATE PROCEDURE [{sp.Schema}].[{backupName}]", $"ALTER PROCEDURE [{sp.Schema}].[{backupName}]", StringComparison.OrdinalIgnoreCase)
+                                                    .Replace($"CREATE PROC [{sp.Schema}].[{backupName}]", $"ALTER PROC [{sp.Schema}].[{backupName}]", StringComparison.OrdinalIgnoreCase);
+                }
+
+
 
                 var backupCommand = new SqlCommand(backupDefinition, connection, transaction);
                 await backupCommand.ExecuteNonQueryAsync();
@@ -897,115 +907,6 @@ namespace DatabaseMigrationTool.Services
             }
         }
 
-        /// <summary>
-        /// Checks if a stored procedure exists
-        /// </summary>
-        public async Task<bool> ProcedureExistsAsync(ConnectionSettings settings, string database, string procedureName)
-        {
-            try
-            {
-                var connectionString = BuildConnectionString(settings, database);
-                using var connection = new SqlConnection(connectionString);
-                await connection.OpenAsync();
-
-                var query = @"
-                    SELECT COUNT(*)
-                    FROM INFORMATION_SCHEMA.ROUTINES 
-                    WHERE ROUTINE_NAME = @ProcedureName 
-                    AND ROUTINE_TYPE = 'PROCEDURE'";
-
-                using var command = new SqlCommand(query, connection);
-                command.Parameters.AddWithValue("@ProcedureName", procedureName);
-
-                var result = await command.ExecuteScalarAsync();
-                return Convert.ToInt32(result) > 0;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Drops a stored procedure if it exists
-        /// </summary>
-        public async Task<bool> DropProcedureAsync(ConnectionSettings settings, string database, string procedureName)
-        {
-            try
-            {
-                var connectionString = BuildConnectionString(settings, database);
-                using var connection = new SqlConnection(connectionString);
-                await connection.OpenAsync();
-
-                var dropScript = $"DROP PROCEDURE IF EXISTS [{procedureName}]";
-                using var command = new SqlCommand(dropScript, connection);
-                await command.ExecuteNonQueryAsync();
-
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Creates or alters a stored procedure from definition
-        /// </summary>
-        public async Task<bool> CreateOrAlterProcedureAsync(ConnectionSettings settings, string database, string procedureDefinition)
-        {
-            try
-            {
-                var connectionString = BuildConnectionString(settings, database);
-                using var connection = new SqlConnection(connectionString);
-                await connection.OpenAsync();
-
-                using var command = new SqlCommand(procedureDefinition, connection);
-                await command.ExecuteNonQueryAsync();
-
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Gets list of procedures that match a pattern (for finding backups)
-        /// </summary>
-        public async Task<List<string>> GetProceduresByPatternAsync(ConnectionSettings settings, string database, string pattern)
-        {
-            var procedures = new List<string>();
-
-            try
-            {
-                var connectionString = BuildConnectionString(settings, database);
-                using var connection = new SqlConnection(connectionString);
-                await connection.OpenAsync();
-
-                var query = @"
-                    SELECT ROUTINE_NAME
-                    FROM INFORMATION_SCHEMA.ROUTINES 
-                    WHERE ROUTINE_TYPE = 'PROCEDURE'
-                    AND ROUTINE_NAME LIKE @Pattern
-                    ORDER BY ROUTINE_NAME";
-
-                using var command = new SqlCommand(query, connection);
-                command.Parameters.AddWithValue("@Pattern", pattern);
-
-                using var reader = await command.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
-                {
-                    procedures.Add(reader.GetString(0));
-                }
-            }
-            catch
-            {
-                // Return empty list on error
-            }
-
-            return procedures;
-        }
+       
     }
 }
