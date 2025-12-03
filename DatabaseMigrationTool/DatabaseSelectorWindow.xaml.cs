@@ -5,10 +5,11 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using DatabaseMigrationTool.Models;
+using Syncfusion.Windows.Shared;
 
 namespace DatabaseMigrationTool
 {
-    public partial class DatabaseSelectorWindow : Window
+    public partial class DatabaseSelectorWindow : ChromelessWindow
     {
         private ObservableCollection<TargetDatabase> _allDatabases;
         private ObservableCollection<TargetDatabase> _filteredDatabases;

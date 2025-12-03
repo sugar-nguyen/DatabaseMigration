@@ -9,13 +9,14 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using Syncfusion.Windows.Shared;
 
 namespace DatabaseMigrationTool
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : ChromelessWindow
     {
         private readonly DatabaseService _databaseService;
         private readonly ConnectionSettingsService _connectionService;
@@ -57,6 +58,7 @@ namespace DatabaseMigrationTool
             LoadRollbackHistory();
             // Initialize Migration Log after the window is loaded
             this.Loaded += MainWindow_Loaded;
+            tblVersion.Text = $"Version {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}";
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -795,8 +797,17 @@ namespace DatabaseMigrationTool
 
         private void LogMessage(string message)
         {
-            txtMigrationLog.AppendText(message + Environment.NewLine);
-            txtMigrationLog.ScrollToEnd();
+            // Safety check: ensure txtMigrationLog is initialized
+            if (txtMigrationLog != null)
+            {
+                txtMigrationLog.AppendText(message + Environment.NewLine);
+                
+                // Auto-scroll to the end when new content is added
+                if (LogScrollViewer != null)
+                {
+                    LogScrollViewer.ScrollToEnd();
+                }
+            }
         }
 
         private void InitializeMigrationLog()
@@ -1358,6 +1369,22 @@ namespace DatabaseMigrationTool
                     lstRollbackHistory.ItemsSource = _rollbackHistory;
                 }
 
+                // Update rollback history count display - using Dispatcher to ensure UI element exists
+                Dispatcher.InvokeAsync(() =>
+                {
+                    var txtCount = this.FindName("txtRollbackHistoryCount") as TextBlock;
+                    if (txtCount != null)
+                    {
+                        txtCount.Text = $"{_rollbackHistory.Count} record(s)";
+                    }
+
+                    var btnClear = this.FindName("btnClearHistory") as FrameworkElement;
+                    if (btnClear != null)
+                    {
+                        btnClear.IsEnabled = _rollbackHistory.Any();
+                    }
+                });
+
                 // Enable rollback button if there are rollback records
                 if (btnRollback != null)
                 {
@@ -1505,6 +1532,154 @@ namespace DatabaseMigrationTool
             finally
             {
                 SetStatus("Ready");
+            }
+        }
+
+        /// <summary>
+        /// Clear all rollback history button click handler
+        /// </summary>
+        private async void ClearHistory_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var recordCount = _rollbackHistory?.Count ?? 0;
+                
+                if (recordCount == 0)
+                {
+                    MessageBox.Show("No rollback history to clear.", "No History", 
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var result = MessageBox.Show(
+                    $"Are you sure you want to clear all rollback history?\n\n" +
+                    $"This will remove {recordCount} rollback record(s).\n" +
+                    $"⚠️ This action cannot be undone!\n\n" +
+                    $"Note: This only clears the history records, not the actual database backups.",
+                    "Confirm Clear History", 
+                    MessageBoxButton.YesNo, 
+                    MessageBoxImage.Warning);
+
+                if (result != MessageBoxResult.Yes) return;
+
+                LogMessage("=== Clearing Rollback History ===");
+                SetStatus("Clearing rollback history...");
+
+                await _rollbackService.ClearAllRollbackHistoryAsync();
+
+                // Refresh the UI
+                LoadRollbackHistory();
+
+                SetStatus("Rollback history cleared");
+                MessageBox.Show(
+                    $"✓ Successfully cleared {recordCount} rollback record(s).", 
+                    "History Cleared", 
+                    MessageBoxButton.OK, 
+                    MessageBoxImage.Information);
+
+                LogMessage($"✓ Rollback history cleared successfully ({recordCount} records removed)");
+                LogMessage("");
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"✗ Error clearing rollback history: {ex.Message}");
+                MessageBox.Show($"Failed to clear rollback history: {ex.Message}", 
+                    "Clear Error", 
+                    MessageBoxButton.OK, 
+                    MessageBoxImage.Error);
+                SetStatus("Ready");
+            }
+        }
+
+        #endregion
+
+        #region Context Menu Handlers
+
+        /// <summary>
+        /// Creates and shows context menu for stored procedure items
+        /// </summary>
+        private void ListStoredProcedures_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            try
+            {
+                // Find the ListBoxItem that was right-clicked
+                var listBox = sender as ListBox;
+                if (listBox == null) return;
+
+                var item = (e.OriginalSource as FrameworkElement)?.DataContext as StoredProcedure;
+                if (item == null) return;
+
+                // Create context menu programmatically
+                var contextMenu = new ContextMenu();
+
+                // View Definition menu item
+                var viewDefItem = new MenuItem { Header = "📄 View Definition" };
+                viewDefItem.Click += (s, args) =>
+                {
+                    try
+                    {
+                        LogMessage($"Opening definition viewer for: {item.FullName}");
+                        var viewerWindow = new StoredProcedureViewerWindow(item);
+                        viewerWindow.Owner = this;
+                        viewerWindow.ShowDialog();
+                    }
+                    catch (Exception ex)
+                    {
+                        LogMessage($"Error opening procedure definition: {ex.Message}");
+                        MessageBox.Show($"Error opening procedure definition: {ex.Message}", 
+                                      "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                };
+                contextMenu.Items.Add(viewDefItem);
+
+                // Separator
+                contextMenu.Items.Add(new Separator());
+
+                // Copy Name menu item
+                var copyNameItem = new MenuItem { Header = "📋 Copy Name" };
+                copyNameItem.Click += (s, args) =>
+                {
+                    try
+                    {
+                        Clipboard.SetText(item.Name);
+                        LogMessage($"Copied procedure name to clipboard: {item.Name}");
+                        SetStatus($"Copied: {item.Name}");
+                    }
+                    catch (Exception ex)
+                    {
+                        LogMessage($"Error copying procedure name: {ex.Message}");
+                        MessageBox.Show($"Error copying to clipboard: {ex.Message}", 
+                                      "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                };
+                contextMenu.Items.Add(copyNameItem);
+
+                // Copy Full Name menu item
+                var copyFullNameItem = new MenuItem { Header = "📝 Copy Full Name (Schema.Name)" };
+                copyFullNameItem.Click += (s, args) =>
+                {
+                    try
+                    {
+                        Clipboard.SetText(item.FullName);
+                        LogMessage($"Copied procedure full name to clipboard: {item.FullName}");
+                        SetStatus($"Copied: {item.FullName}");
+                    }
+                    catch (Exception ex)
+                    {
+                        LogMessage($"Error copying procedure full name: {ex.Message}");
+                        MessageBox.Show($"Error copying to clipboard: {ex.Message}", 
+                                      "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                };
+                contextMenu.Items.Add(copyFullNameItem);
+
+                // Show the context menu
+                contextMenu.PlacementTarget = listBox;
+                contextMenu.IsOpen = true;
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"Error creating context menu: {ex.Message}");
             }
         }
 

@@ -1,20 +1,20 @@
-<syncfusion:ChromelessWindow x:Class="DatabaseMigrationTool.ScriptPreviewWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+﻿<syncfusion:ChromelessWindow x:Class="DatabaseMigrationTool.StoredProcedureViewerWindow"
+       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:syncfusion="http://schemas.syncfusion.com/wpf"
         xmlns:syncfusionskin="clr-namespace:Syncfusion.SfSkinManager;assembly=Syncfusion.SfSkinManager.WPF"
         syncfusionskin:SfSkinManager.Theme="{syncfusionskin:SkinManagerExtension ThemeName=VisualStudio2015}"
-        Title="Script Preview" 
+        Title="Stored Procedure Viewer" 
         Height="700" 
         Width="1000"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterOwner"
         MinHeight="500"
-        MinWidth="800">
-
+        MinWidth="800"
+        Icon="app-icon.png">
     <syncfusion:ChromelessWindow.Resources>
         <!-- Icon Templates -->
-        
+
         <!-- Copy Icon -->
         <DataTemplate x:Key="CopyIcon">
             <Viewbox Width="16" Height="16">
@@ -216,7 +216,6 @@
         </DataTemplate>
 
     </syncfusion:ChromelessWindow.Resources>
-
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -226,121 +225,91 @@
 
         <!-- Header Bar -->
         <Border Grid.Row="0" Background="#2D2D30" Padding="20,15">
-            <StackPanel>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <ContentControl ContentTemplate="{StaticResource DocumentIcon}" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="Script Preview" 
-                              FontSize="20" 
-                              FontWeight="SemiBold" 
-                              Foreground="#F1F1F1" 
-                              VerticalAlignment="Center"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <StackPanel Orientation="Horizontal">
+                        <!--<TextBlock Text="📄" FontSize="20" Margin="0,0,10,0" VerticalAlignment="Center"/>-->
+                        <TextBlock Name="txtProcedureName" Text="Stored Procedure Definition" 
+                                  FontSize="18" FontWeight="SemiBold" 
+                                  Foreground="#F1F1F1" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Name="txtProcedureInfo" Text="" 
+                              FontSize="11" Foreground="#999999" Margin="30,5,0,0"/>
                 </StackPanel>
-                <TextBlock Text="Review the SQL scripts that will be executed during migration" 
-                          FontSize="12" 
-                          Foreground="#999999"
-                          HorizontalAlignment="Center"
-                          Margin="0,5,0,0"/>
-            </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Border Background="#3E3E42" CornerRadius="4" Padding="8,4" Margin="0,0,10,0">
+                        <TextBlock Name="txtLineCount" Text="0 lines" 
+                                 FontSize="10" Foreground="#F1F1F1"/>
+                    </Border>
+                    <Border Background="#3E3E42" CornerRadius="4" Padding="8,4">
+                        <TextBlock Name="txtCharCount" Text="0 chars" 
+                                 FontSize="10" Foreground="#F1F1F1"/>
+                    </Border>
+                </StackPanel>
+            </Grid>
         </Border>
 
-        <!-- Content -->
-        <syncfusion:TabControlExt Grid.Row="1" Name="tabScripts" Margin="10">
-            <syncfusion:TabItemExt Header="📋 Stored Procedures" Name="tabStoredProcedures">
-                <Grid Margin="10">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    
-                    <Border Grid.Row="0" Background="#3E3E42" CornerRadius="4" Padding="10" Margin="0,0,0,10">
-                        <StackPanel Orientation="Horizontal">
-                            <ContentControl ContentTemplate="{StaticResource DatabaseIcon}" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Stored procedure scripts to be executed:" 
-                                      FontSize="12" 
-                                      FontWeight="SemiBold"
-                                      Foreground="#F1F1F1"
-                                      VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Border>
-                    
-                    <Border Grid.Row="1" Background="#1E1E1E" BorderBrush="#3E3E42" BorderThickness="1" CornerRadius="4">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                            <TextBox Name="txtStoredProcedureScripts"
-                                    IsReadOnly="True"
-                                    Background="Transparent"
-                                    Foreground="#569CD6"
-                                    FontFamily="Consolas"
-                                    FontSize="12"
-                                    AcceptsReturn="True"
-                                    TextWrapping="NoWrap"
-                                    BorderThickness="0"
-                                    Padding="10"
-                                    SelectionBrush="#264F78"
-                                    VerticalScrollBarVisibility="Disabled"
-                                    HorizontalScrollBarVisibility="Disabled"/>
-                        </ScrollViewer>
-                    </Border>
-                </Grid>
-            </syncfusion:TabItemExt>
+        <!-- SQL Editor -->
+        <Border Grid.Row="1" Background="#1E1E1E" BorderBrush="#3E3E42" BorderThickness="1,0,1,1">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                <TextBox Name="txtDefinition" 
+                       IsReadOnly="True"
+                       Background="Transparent"
+                       Foreground="White"
+                       FontFamily="Consolas"
+                       FontSize="14"
+                       FontWeight="Bold"
+                       AcceptsReturn="True"
+                       TextWrapping="NoWrap"
+                       BorderThickness="0"
+                       Padding="15"
+                       SelectionBrush="#264F78"
+                       VerticalScrollBarVisibility="Disabled"
+                       HorizontalScrollBarVisibility="Disabled"/>
+            </ScrollViewer>
+        </Border>
 
-            <syncfusion:TabItemExt Header="🗂️ Tables" Name="tabTables">
-                <Grid Margin="10">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    
-                    <Border Grid.Row="0" Background="#3E3E42" CornerRadius="4" Padding="10" Margin="0,0,0,10">
-                        <StackPanel Orientation="Horizontal">
-                            <ContentControl ContentTemplate="{StaticResource DatabaseIcon}" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Table creation scripts to be executed:" 
-                                      FontSize="12" 
-                                      FontWeight="SemiBold"
-                                      Foreground="#F1F1F1"
-                                      VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Border>
-                    
-                    <Border Grid.Row="1" Background="#1E1E1E" BorderBrush="#3E3E42" BorderThickness="1" CornerRadius="4">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                            <TextBox Name="txtTableScripts"
-                                    IsReadOnly="True"
-                                    Background="Transparent"
-                                    Foreground="#4EC9B0"
-                                    FontFamily="Consolas"
-                                    FontSize="12"
-                                    AcceptsReturn="True"
-                                    TextWrapping="NoWrap"
-                                    BorderThickness="0"
-                                    Padding="10"
-                                    SelectionBrush="#264F78"
-                                    VerticalScrollBarVisibility="Disabled"
-                                    HorizontalScrollBarVisibility="Disabled"/>
-                        </ScrollViewer>
-                    </Border>
-                </Grid>
-            </syncfusion:TabItemExt>
-        </syncfusion:TabControlExt>
-
-        <!-- Footer -->
+        <!-- Footer with Actions -->
         <Border Grid.Row="2" Background="#2D2D30" BorderBrush="#3E3E42" BorderThickness="0,1,0,0" Padding="20,15">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <syncfusion:ButtonAdv SizeMode="Normal"
-                                     IconTemplate="{StaticResource CopyIcon}"
-                                     Label="Copy All Scripts"
-                                     Click="CopyScripts_Click"
-                                     Width="180"
-                                     Height="36"
-                                     Margin="0,0,10,0">
-                </syncfusion:ButtonAdv>
-                <syncfusion:ButtonAdv SizeMode="Normal"
-                                     Click="Close_Click"
-                                     Label="Close"
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <syncfusion:ButtonAdv Name="btnCopy" 
+                                         Label="Copy" 
+                                         IconTemplate="{StaticResource CopyIcon}"
+                                         SizeMode="Normal" 
+                                         Click="Copy_Click" 
+                                         Width="120" 
+                                         Height="32"
+                                         Margin="0,0,10,0"/>
+                    <syncfusion:ButtonAdv Name="btnExport" 
+                                         Label="Export to File" 
+                                         IconTemplate="{StaticResource ExportIcon}"
+                                         SizeMode="Normal" 
+                                         Click="Export_Click" 
+                                         Width="140" 
+                                         Height="32"/>
+                </StackPanel>
+
+                <syncfusion:ButtonAdv Grid.Column="1" 
+                                     Name="btnClose" 
+                                     Label="Close" 
+                                     SizeMode="Normal" 
+                                     Click="Close_Click" 
                                      IconTemplate="{StaticResource CheckIcon}"
-                                     Width="120"
-                                     Height="36">
-                </syncfusion:ButtonAdv>
-            </StackPanel>
+                                     Width="100" 
+                                     Height="32"/>
+            </Grid>
         </Border>
     </Grid>
 </syncfusion:ChromelessWindow>

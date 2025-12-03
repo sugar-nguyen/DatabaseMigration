@@ -6,10 +6,11 @@ using System.Windows;
 using System.Windows.Controls;
 using DatabaseMigrationTool.Models;
 using DatabaseMigrationTool.Services;
+using Syncfusion.Windows.Shared;
 
 namespace DatabaseMigrationTool
 {
-    public partial class DifferentServerConnectionWindow : Window
+    public partial class DifferentServerConnectionWindow : ChromelessWindow
     {
         private readonly DatabaseService _databaseService;
         private readonly ConnectionSettingsService _connectionService;

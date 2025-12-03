@@ -5,10 +5,11 @@ using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using DatabaseMigrationTool.Models;
+using Syncfusion.Windows.Shared;
 
 namespace DatabaseMigrationTool
 {
-    public partial class ScriptPreviewWindow : Window
+    public partial class ScriptPreviewWindow : ChromelessWindow
     {
         public ScriptPreviewWindow()
         {

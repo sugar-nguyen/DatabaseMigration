@@ -425,5 +425,24 @@ namespace DatabaseMigrationTool.Services
                 LogMessage?.Invoke($"Error cleaning up old rollback records: {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// Clears all rollback history records
+        /// </summary>
+        public async Task ClearAllRollbackHistoryAsync()
+        {
+            try
+            {
+                var recordCount = _rollbackHistory?.Count ?? 0;
+                _rollbackHistory?.Clear();
+                await SaveRollbackHistoryAsync();
+                LogMessage?.Invoke($"✓ Cleared all rollback history ({recordCount} records removed)");
+            }
+            catch (Exception ex)
+            {
+                LogMessage?.Invoke($"✗ Error clearing rollback history: {ex.Message}");
+                throw;
+            }
+        }
     }
 }

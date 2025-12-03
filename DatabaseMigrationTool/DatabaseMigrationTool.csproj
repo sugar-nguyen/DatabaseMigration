@@ -14,13 +14,18 @@
     <AssemblyCompany>Database Migration Solutions</AssemblyCompany>
     <AssemblyProduct>Database Migration Tool</AssemblyProduct>
     <Copyright>Copyright © 2025</Copyright>
-    <AssemblyVersion>1.0.4.0</AssemblyVersion>
-    <FileVersion>1.0.4.0</FileVersion>
+    <AssemblyVersion>2.0</AssemblyVersion>
+    <FileVersion>2.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Syncfusion.Licensing" Version="31.2.15" />
+    <PackageReference Include="Syncfusion.Shared.WPF" Version="31.2.15" />
+    <PackageReference Include="Syncfusion.Tools.WPF" Version="31.2.15" />
+    <PackageReference Include="Syncfusion.SfSkinManager.WPF" Version="31.2.15" />
+    <PackageReference Include="Syncfusion.Themes.VisualStudio2015.WPF" Version="31.2.15" />
   </ItemGroup>
 
   <ItemGroup>
@@ -28,6 +33,10 @@
     <Content Include="app-icon.ico">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Themes\" />
   </ItemGroup>
 
 </Project>
