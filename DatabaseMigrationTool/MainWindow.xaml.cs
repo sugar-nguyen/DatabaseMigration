@@ -48,7 +48,7 @@ namespace DatabaseMigrationTool
 
             // Subscribe to rollback service events
             _rollbackService.LogMessage += (message) => LogMessage(message);
-            _rollbackService.ProgressChanged += (progress) => 
+            _rollbackService.ProgressChanged += (progress) =>
             {
                 // Update progress if needed - implement later
             };
@@ -73,16 +73,16 @@ namespace DatabaseMigrationTool
             try
             {
                 var connections = _connectionService.GetServerConnections();
-                
+
                 cmbServer.Items.Clear();
-                
+
                 // Add server names as strings first
                 var serverNames = connections.Select(c => c.ServerName).Distinct().ToList();
                 foreach (var serverName in serverNames)
                 {
                     cmbServer.Items.Add(serverName);
                 }
-                
+
                 // Store connections for later use
                 cmbServer.Tag = connections;
             }
@@ -97,14 +97,14 @@ namespace DatabaseMigrationTool
         {
             if (string.IsNullOrWhiteSpace(cmbServer.Text))
             {
-                MessageBox.Show("Please enter a server name first.", "Missing Information", 
+                MessageBox.Show("Please enter a server name first.", "Missing Information",
                                MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
 
             if (!(chkWindowsAuth.IsChecked ?? true) && string.IsNullOrWhiteSpace(txtUsername.Text))
             {
-                MessageBox.Show("Please enter username for SQL Server authentication.", "Missing Information", 
+                MessageBox.Show("Please enter username for SQL Server authentication.", "Missing Information",
                                MessageBoxButton.OK, MessageBoxImage.Warning);
                 return false;
             }
@@ -135,7 +135,7 @@ namespace DatabaseMigrationTool
             {
                 if (string.IsNullOrWhiteSpace(cmbServer.Text))
                 {
-                    MessageBox.Show("Please enter a server name.", "Missing Information", 
+                    MessageBox.Show("Please enter a server name.", "Missing Information",
                                    MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
@@ -145,7 +145,7 @@ namespace DatabaseMigrationTool
                 LogMessage($"Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
                 LogMessage($"Server: {cmbServer.Text}");
                 LogMessage($"Authentication: {(chkWindowsAuth.IsChecked == true ? "Windows Authentication" : "SQL Server Authentication")}");
-                
+
                 var settings = GetCurrentConnectionSettings();
                 var success = await _databaseService.TestConnectionAsync(settings);
 
@@ -154,16 +154,16 @@ namespace DatabaseMigrationTool
                     SetStatus("Connection test successful");
                     LogMessage("✓ Connection test successful");
                     LogMessage("🔗 Server is accessible and credentials are valid");
-                    
+
                     // Save connection to history
                     _connectionService.SaveServerConnection(settings);
-                    
+
                     // Preserve current server name when refreshing history
                     var currentServerName = cmbServer.Text;
-                    LoadConnectionHistory(); 
+                    LoadConnectionHistory();
                     cmbServer.Text = currentServerName; // Restore the server name
-                    
-                    MessageBox.Show("Connection successful!", "Connection Test", 
+
+                    MessageBox.Show("Connection successful!", "Connection Test",
                                    MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
@@ -171,7 +171,7 @@ namespace DatabaseMigrationTool
                     SetStatus("Connection test failed");
                     LogMessage("✗ Connection test failed");
                     LogMessage("❌ Could not connect - check server name and credentials");
-                    MessageBox.Show("Connection failed. Check the Migration Log for details.", 
+                    MessageBox.Show("Connection failed. Check the Migration Log for details.",
                                    "Connection Test", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
                 LogMessage("");
@@ -181,7 +181,7 @@ namespace DatabaseMigrationTool
                 SetStatus("Connection error");
                 LogMessage($"❌ Connection error: {ex.Message}");
                 LogMessage($"Error Type: {ex.GetType().Name}");
-                MessageBox.Show("Connection error! Check the Migration Log for details.", 
+                MessageBox.Show("Connection error! Check the Migration Log for details.",
                                "Connection Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -192,7 +192,7 @@ namespace DatabaseMigrationTool
             {
                 if (string.IsNullOrWhiteSpace(cmbServer.Text))
                 {
-                    MessageBox.Show("Please enter a server name first.", "Missing Information", 
+                    MessageBox.Show("Please enter a server name first.", "Missing Information",
                                    MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
@@ -201,7 +201,7 @@ namespace DatabaseMigrationTool
                 LogMessage($"=== LOADING DATABASES ===");
                 LogMessage($"Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
                 LogMessage($"Server: {cmbServer.Text}");
-                
+
                 var settings = GetCurrentConnectionSettings();
                 var databases = await _databaseService.GetDatabasesAsync(settings);
 
@@ -223,10 +223,10 @@ namespace DatabaseMigrationTool
 
                 // Save connection to history when databases loaded successfully
                 _connectionService.SaveServerConnection(settings);
-                
+
                 // Preserve current server name when refreshing history
                 var currentServerName = cmbServer.Text;
-                LoadConnectionHistory(); 
+                LoadConnectionHistory();
                 cmbServer.Text = currentServerName; // Restore the server name
 
                 SetStatus($"Loaded {databases.Count} databases");
@@ -240,7 +240,7 @@ namespace DatabaseMigrationTool
                 LogMessage($"✗ Failed to load databases: {ex.Message}");
                 LogMessage($"Error Type: {ex.GetType().Name}");
                 LogMessage("");
-                MessageBox.Show("Error loading databases! Check the Migration Log for details.", 
+                MessageBox.Show("Error loading databases! Check the Migration Log for details.",
                                "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -257,7 +257,7 @@ namespace DatabaseMigrationTool
 
                 if (string.IsNullOrWhiteSpace(cmbSourceDatabase.Text))
                 {
-                    MessageBox.Show("Please select a source database first.", "Missing Information", 
+                    MessageBox.Show("Please select a source database first.", "Missing Information",
                                    MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
@@ -268,22 +268,22 @@ namespace DatabaseMigrationTool
                 LogMessage($"Source Database: {cmbSourceDatabase.Text}");
                 LogMessage($"Server: {cmbServer.Text}");
                 LogMessage($"Authentication: {(chkWindowsAuth.IsChecked == true ? "Windows Authentication" : $"SQL Server Authentication (User: {txtUsername.Text})")}");
-                
+
                 var settings = GetCurrentConnectionSettings();
                 LogMessage($"Connection String Preview: Server={settings.ServerName};Database={settings.DatabaseName};[Auth Info Hidden]");
-                
+
                 // Test connection before loading objects
                 LogMessage("Testing connection to source database...");
                 var connectionTest = await _databaseService.TestConnectionAsync(settings);
                 if (!connectionTest)
                 {
                     LogMessage("✗ Connection test failed - cannot load database objects");
-                    MessageBox.Show("Connection to source database failed. Please check your connection settings and try 'Test Connection' first.", 
+                    MessageBox.Show("Connection to source database failed. Please check your connection settings and try 'Test Connection' first.",
                                    "Connection Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
                 LogMessage("✓ Connection test successful");
-                
+
                 // Load stored procedures
                 LogMessage("Loading stored procedures...");
                 var procedures = await _databaseService.GetStoredProceduresAsync(settings);
@@ -299,15 +299,15 @@ namespace DatabaseMigrationTool
                 lstStoredProcedures.ItemsSource = _storedProceduresView;
 
                 UpdateProcedureCount();
-                
+
                 // Update the Database Summary total count
                 lblTotalProcedures.Text = _storedProcedures.Count.ToString();
                 LogMessage($"✓ Loaded {_storedProcedures.Count} stored procedures");
-                
+
                 // Also load tables
                 LogMessage("Loading tables...");
                 await LoadTablesInternal();
-                
+
                 SetStatus($"Loaded {_storedProcedures.Count} stored procedures and {_tables?.Count ?? 0} tables");
                 LogMessage($"✓ Loaded {_tables?.Count ?? 0} tables");
                 LogMessage($"📊 Total objects available for migration: {_storedProcedures.Count + (_tables?.Count ?? 0)}");
@@ -319,7 +319,7 @@ namespace DatabaseMigrationTool
                 LogMessage($"✗ Failed to load database objects: {ex.Message}");
                 LogMessage($"Error Type: {ex.GetType().Name}");
                 LogMessage("");
-                MessageBox.Show("Error loading database objects! Check the Migration Log for details.", 
+                MessageBox.Show("Error loading database objects! Check the Migration Log for details.",
                                "Database Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -332,16 +332,16 @@ namespace DatabaseMigrationTool
         {
             var differentServerWindow = new DifferentServerConnectionWindow();
             differentServerWindow.Owner = this;
-            
+
             if (differentServerWindow.ShowDialog() == true)
             {
                 _isDifferentServerMode = true;
                 _differentServerSettings = differentServerWindow.ConnectionSettings;
                 _differentServerDatabases = new ObservableCollection<TargetDatabase>(
-                    differentServerWindow.TargetDatabases.Where(db => db.IsSelected).Select(db => new TargetDatabase 
-                    { 
-                        Name = db.Name, 
-                        IsSelected = true 
+                    differentServerWindow.TargetDatabases.Where(db => db.IsSelected).Select(db => new TargetDatabase
+                    {
+                        Name = db.Name,
+                        IsSelected = true
                     })
                 );
                 UpdateTargetConfigurationDisplay();
@@ -363,7 +363,7 @@ namespace DatabaseMigrationTool
                 lblTargetMode.Text = $"🔗 Different Server: {_differentServerSettings.ServerName}";
                 btnSameServer.Visibility = Visibility.Visible;
                 btnDifferentServer.Visibility = Visibility.Collapsed;
-                
+
                 // Update target databases list for different server
                 lstTargetDatabases.ItemsSource = _differentServerDatabases;
             }
@@ -372,18 +372,18 @@ namespace DatabaseMigrationTool
                 lblTargetMode.Text = "📍 Same Server";
                 btnSameServer.Visibility = Visibility.Collapsed;
                 btnDifferentServer.Visibility = Visibility.Visible;
-                
+
                 // Update target databases list for same server
                 lstTargetDatabases.ItemsSource = _targetDatabases;
             }
-            
+
             // Force refresh the ListBox to update checkboxes
             if (lstTargetDatabases.ItemsSource != null)
             {
                 var view = CollectionViewSource.GetDefaultView(lstTargetDatabases.ItemsSource);
                 view?.Refresh();
             }
-            
+
             // Update the database count
             UpdateTargetDatabaseCount();
         }
@@ -398,7 +398,7 @@ namespace DatabaseMigrationTool
             {
                 // Check if we have target databases selected - handle both same server and different server modes
                 List<TargetDatabase>? selectedTargetDbs = null;
-                
+
                 if (_isDifferentServerMode && _differentServerDatabases != null)
                 {
                     // Different server mode - check _differentServerDatabases
@@ -409,7 +409,7 @@ namespace DatabaseMigrationTool
                     // Same server mode - check _targetDatabases
                     selectedTargetDbs = _targetDatabases?.Where(d => d.IsSelected).ToList();
                 }
-                
+
                 if (selectedTargetDbs == null || !selectedTargetDbs.Any())
                 {
                     MessageBox.Show("Please select target databases before starting migration.", "No Target Databases", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -419,8 +419,8 @@ namespace DatabaseMigrationTool
                 // Check if we have stored procedures or tables selected
                 var selectedProcedures = _storedProcedures?.Where(sp => sp.IsSelected).ToList();
                 var selectedTables = _tables?.Where(t => t.IsSelected).ToList();
-                
-                if ((selectedProcedures == null || !selectedProcedures.Any()) && 
+
+                if ((selectedProcedures == null || !selectedProcedures.Any()) &&
                     (selectedTables == null || !selectedTables.Any()))
                 {
                     MessageBox.Show("Please select stored procedures or tables to migrate.", "Nothing Selected", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -431,8 +431,8 @@ namespace DatabaseMigrationTool
                     $"Start migration to {selectedTargetDbs.Count} database(s)?\n\n" +
                     $"Stored Procedures: {selectedProcedures?.Count ?? 0}\n" +
                     $"Tables: {selectedTables?.Count ?? 0}",
-                    "Confirm Migration", 
-                    MessageBoxButton.YesNo, 
+                    "Confirm Migration",
+                    MessageBoxButton.YesNo,
                     MessageBoxImage.Question);
 
                 if (result == MessageBoxResult.Yes)
@@ -457,7 +457,7 @@ namespace DatabaseMigrationTool
             {
                 // Clear previous logs
                 txtMigrationLog.Clear();
-                
+
                 SetStatus("Starting migration process...");
                 LogMessage($"=== MIGRATION STARTED ===");
                 LogMessage($"Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
@@ -471,7 +471,7 @@ namespace DatabaseMigrationTool
                 foreach (var targetDb in targetDatabases)
                 {
                     var targetSettings = GetTargetConnectionSettings(targetDb.Name);
-                    
+
                     SetStatus($"Migrating to database: {targetDb.Name}");
                     LogMessage($"--- Processing Target Database: {targetDb.Name} ---");
 
@@ -485,7 +485,7 @@ namespace DatabaseMigrationTool
                             {
                                 SetStatus($"Migrating procedure {sp.Name} to {targetDb.Name}...");
                                 LogMessage($"  • Migrating procedure: {sp.Schema}.{sp.Name}");
-                                
+
                                 // Check if backup will be created based on checkbox
                                 bool createBackup = chkCreateBackup.IsChecked == true;
                                 var procedureExists = await _databaseService.StoredProcedureExistsAsync(targetSettings, sp.Schema, sp.Name);
@@ -497,10 +497,10 @@ namespace DatabaseMigrationTool
                                 {
                                     LogMessage($"    → Backup skipped (Create backup option not selected)");
                                 }
-                                
+
                                 await _databaseService.CreateOrAlterStoredProcedureAsync(targetSettings, sp, createBackup: createBackup);
                                 completedOperations++;
-                                
+
                                 LogMessage($"    ✓ Success");
                                 SetStatus($"Progress: {completedOperations}/{totalOperations} completed");
                             }
@@ -524,7 +524,7 @@ namespace DatabaseMigrationTool
                             {
                                 SetStatus($"Migrating table {table.Name} to {targetDb.Name}...");
                                 LogMessage($"  • Migrating table: {table.Schema}.{table.Name}");
-                                
+
                                 // Check if table exists
                                 var tableExists = await _databaseService.TableExistsAsync(targetSettings, table.Schema, table.Name);
                                 if (tableExists)
@@ -535,10 +535,10 @@ namespace DatabaseMigrationTool
                                 {
                                     LogMessage($"    → Creating new table");
                                 }
-                                
+
                                 await _databaseService.CreateOrAlterTableAsync(sourceSettings, targetSettings, table, replaceIfExists: false);
                                 completedOperations++;
-                                
+
                                 LogMessage($"    ✓ Success");
                                 SetStatus($"Progress: {completedOperations}/{totalOperations} completed");
                             }
@@ -551,7 +551,7 @@ namespace DatabaseMigrationTool
                             }
                         }
                     }
-                    
+
                     LogMessage($"Completed target database: {targetDb.Name}");
                     LogMessage("");
                 }
@@ -561,18 +561,18 @@ namespace DatabaseMigrationTool
                 LogMessage($"Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
                 LogMessage($"Success: {completedOperations}/{totalOperations} operations");
                 LogMessage($"Errors: {errorCount}");
-                LogMessage($"Success Rate: {(totalOperations > 0 ? (completedOperations * 100.0 / totalOperations):0):F1}%");
+                LogMessage($"Success Rate: {(totalOperations > 0 ? (completedOperations * 100.0 / totalOperations) : 0):F1}%");
                 LogMessage("");
                 LogMessage("📊 MIGRATION SUMMARY:");
                 LogMessage($"   Target Databases: {targetDatabases.Count}");
                 LogMessage($"   Stored Procedures: {selectedProcedures?.Count ?? 0}");
                 LogMessage($"   Tables: {selectedTables?.Count ?? 0}");
-                LogMessage($"   Success Rate: {(totalOperations > 0 ? (completedOperations * 100.0 / totalOperations):0):F1}%");
+                LogMessage($"   Success Rate: {(totalOperations > 0 ? (completedOperations * 100.0 / totalOperations) : 0):F1}%");
                 LogMessage("");
                 if (errorCount == 0)
                 {
                     LogMessage("🎉 All operations completed successfully!");
-                    
+
                     // Record migration for rollback if backup was created
                     if (chkCreateBackup != null && (chkCreateBackup.IsChecked ?? false))
                     {
@@ -582,7 +582,7 @@ namespace DatabaseMigrationTool
                             var sourceDatabase = cmbSourceDatabase?.Text ?? "";
                             var migrationSettings = $"Migration on {DateTime.Now:yyyy-MM-dd HH:mm:ss}"; // Simple settings string
                             var currentSettings = GetCurrentConnectionSettings();
-                            
+
                             await _rollbackService.RecordMigrationAsync(
                                 sourceDatabase,
                                 targetDatabases.Select(td => td.Name).ToList(),
@@ -591,9 +591,9 @@ namespace DatabaseMigrationTool
                                 migrationSettings,
                                 currentSettings
                             );
-                            
+
                             LogMessage("✓ Migration recorded for rollback successfully");
-                            
+
                             // Refresh rollback history in UI
                             LoadRollbackHistory();
                         }
@@ -608,9 +608,9 @@ namespace DatabaseMigrationTool
                     LogMessage($"⚠️  {errorCount} operations failed - check log details above");
                 }
                 LogMessage("=====================================");
-                
+
                 // Show simple completion notification without detailed stats (user can see in log)
-                MessageBox.Show($"Migration completed!\n\nCheck the Migration Log for detailed results.", 
+                MessageBox.Show($"Migration completed!\n\nCheck the Migration Log for detailed results.",
                               "Migration Complete", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -623,7 +623,7 @@ namespace DatabaseMigrationTool
                 LogMessage($"Operations completed before failure: {completedOperations}/{totalOperations}");
                 LogMessage($"Stack Trace: {ex.StackTrace}");
                 LogMessage("=====================================");
-                
+
                 MessageBox.Show($"Migration failed! Check the Migration Log for details.", "Migration Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -672,7 +672,7 @@ namespace DatabaseMigrationTool
                 // Check if we have anything selected to preview
                 var selectedProcedures = _storedProcedures?.Where(sp => sp.IsSelected).ToList() ?? new List<StoredProcedure>();
                 var selectedTables = _tables?.Where(t => t.IsSelected).ToList() ?? new List<Table>();
-                
+
                 if (!selectedProcedures.Any() && !selectedTables.Any())
                 {
                     MessageBox.Show("Please select stored procedures or tables to preview scripts.", "Nothing Selected", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -684,23 +684,23 @@ namespace DatabaseMigrationTool
                 LogMessage($"Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
                 LogMessage($"Selected Procedures: {selectedProcedures.Count}");
                 LogMessage($"Selected Tables: {selectedTables.Count}");
-                
+
                 // Open the script preview window
                 var previewWindow = new ScriptPreviewWindow();
-                
+
                 // Generate placeholder scripts for preview
                 var procedureScripts = selectedProcedures.Select(p => $"-- Script for {p.Name}\nCREATE OR ALTER PROCEDURE [{p.Name}]\nAS\nBEGIN\n    -- Procedure implementation\nEND").ToList();
                 var tableScripts = selectedTables.Select(t => $"-- Script for {t.Name}\nCREATE TABLE [{t.Name}] (\n    -- Table structure\n);").ToList();
-                
+
                 LogMessage("Generated script preview for:");
                 foreach (var proc in selectedProcedures)
                     LogMessage($"  • Procedure: {proc.Schema}.{proc.Name}");
                 foreach (var table in selectedTables)
                     LogMessage($"  • Table: {table.Schema}.{table.Name}");
-                
+
                 previewWindow.SetScripts(selectedProcedures, selectedTables, procedureScripts, tableScripts);
                 previewWindow.ShowDialog();
-                
+
                 SetStatus("Script preview completed");
                 LogMessage("Script preview window opened successfully");
                 LogMessage("");
@@ -738,13 +738,13 @@ namespace DatabaseMigrationTool
                 _tablesView = CollectionViewSource.GetDefaultView(_tables);
                 lstTables.ItemsSource = _tablesView;
                 UpdateTableCount();
-                
+
                 // Update the Database Summary total count
                 lblTotalTables.Text = _tables.Count.ToString();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error loading tables: {ex.Message}", "Database Error", 
+                MessageBox.Show($"Error loading tables: {ex.Message}", "Database Error",
                               MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -801,7 +801,7 @@ namespace DatabaseMigrationTool
             if (txtMigrationLog != null)
             {
                 txtMigrationLog.AppendText(message + Environment.NewLine);
-                
+
                 // Auto-scroll to the end when new content is added
                 if (LogScrollViewer != null)
                 {
@@ -843,12 +843,12 @@ namespace DatabaseMigrationTool
             {
                 var selectedServerName = cmbServer.SelectedItem.ToString();
                 var matchingConnection = connections.FirstOrDefault(c => c.ServerName.Equals(selectedServerName, StringComparison.OrdinalIgnoreCase));
-                
+
                 if (matchingConnection != null)
                 {
                     // Auto-fill authentication settings
                     chkWindowsAuth.IsChecked = matchingConnection.UseWindowsAuthentication;
-                    
+
                     if (!matchingConnection.UseWindowsAuthentication)
                     {
                         // Fill username and password for SQL authentication
@@ -861,13 +861,13 @@ namespace DatabaseMigrationTool
                         txtUsername.Text = "";
                         txtPassword.Password = "";
                     }
-                    
+
                     // Trigger the auth panel visibility change
                     WindowsAuth_Changed(chkWindowsAuth, new RoutedEventArgs());
-                    
+
                     // Update last used
                     _connectionService.UpdateLastUsed(matchingConnection);
-                    
+
                     // Refresh target configuration display to ensure UI is updated
                     UpdateTargetConfigurationDisplay();
                 }
@@ -880,7 +880,7 @@ namespace DatabaseMigrationTool
             if (cmbSourceDatabase.SelectedItem != null && _targetDatabases != null && !_isDifferentServerMode)
             {
                 var selectedSourceDb = cmbSourceDatabase.SelectedItem.ToString();
-                
+
                 // Re-add previously selected source database back to target list
                 if (e.RemovedItems.Count > 0)
                 {
@@ -895,7 +895,7 @@ namespace DatabaseMigrationTool
                         }
                     }
                 }
-                
+
                 // Remove current source database from target databases list to prevent self-migration
                 var sourceDbInTargets = _targetDatabases.FirstOrDefault(db => db.Name == selectedSourceDb);
                 if (sourceDbInTargets != null)
@@ -903,7 +903,7 @@ namespace DatabaseMigrationTool
                     _targetDatabases.Remove(sourceDbInTargets);
                     LogMessage($"Removed source database '{selectedSourceDb}' from target databases to prevent self-migration (same server mode)");
                 }
-                
+
                 // Update target database count display
                 UpdateTargetConfigurationDisplay();
             }
@@ -979,7 +979,7 @@ namespace DatabaseMigrationTool
 
                 // Check if we have target databases selected - handle both same server and different server modes
                 List<TargetDatabase>? selectedTargetDbs = null;
-                
+
                 if (_isDifferentServerMode && _differentServerDatabases != null)
                 {
                     // Different server mode - check _differentServerDatabases
@@ -990,7 +990,7 @@ namespace DatabaseMigrationTool
                     // Same server mode - check _targetDatabases
                     selectedTargetDbs = _targetDatabases?.Where(d => d.IsSelected).ToList();
                 }
-                
+
                 if (selectedTargetDbs == null || !selectedTargetDbs.Any())
                 {
                     MessageBox.Show("Please select target databases first.", "No Target Databases", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -1000,8 +1000,8 @@ namespace DatabaseMigrationTool
                 // Check if we have stored procedures or tables selected
                 var selectedProcedures = _storedProcedures?.Where(sp => sp.IsSelected).ToList();
                 var selectedTables = _tables?.Where(t => t.IsSelected).ToList();
-                
-                if ((selectedProcedures == null || !selectedProcedures.Any()) && 
+
+                if ((selectedProcedures == null || !selectedProcedures.Any()) &&
                     (selectedTables == null || !selectedTables.Any()))
                 {
                     MessageBox.Show("Please select stored procedures or tables to migrate.", "Nothing Selected", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -1015,20 +1015,20 @@ namespace DatabaseMigrationTool
                 settings.AppendLine("=== DATABASE MIGRATION SETTINGS ===");
                 settings.AppendLine($"Generated: {DateTime.Now}");
                 settings.AppendLine();
-                
+
                 settings.AppendLine("SOURCE CONNECTION:");
                 settings.AppendLine($"  Server: {cmbServer.Text}");
                 settings.AppendLine($"  Database: {cmbSourceDatabase.Text}");
                 settings.AppendLine($"  Authentication: {(chkWindowsAuth.IsChecked == true ? "Windows Authentication" : "SQL Server Authentication")}");
                 settings.AppendLine();
-                
+
                 settings.AppendLine("TARGET DATABASES:");
                 foreach (var db in selectedTargetDbs)
                 {
                     settings.AppendLine($"  • {db.Name}");
                 }
                 settings.AppendLine();
-                
+
                 if (selectedProcedures != null && selectedProcedures.Any())
                 {
                     settings.AppendLine($"STORED PROCEDURES ({selectedProcedures.Count}):");
@@ -1040,7 +1040,7 @@ namespace DatabaseMigrationTool
                         settings.AppendLine($"  ... and {selectedProcedures.Count - 10} more");
                     settings.AppendLine();
                 }
-                
+
                 if (selectedTables != null && selectedTables.Any())
                 {
                     settings.AppendLine($"TABLES ({selectedTables.Count}):");
@@ -1054,9 +1054,9 @@ namespace DatabaseMigrationTool
 
                 // Show settings in a message box
                 var result = MessageBox.Show(
-                    settings.ToString() + "\n\nSave settings to file?", 
-                    "Migration Settings Generated", 
-                    MessageBoxButton.YesNo, 
+                    settings.ToString() + "\n\nSave settings to file?",
+                    "Migration Settings Generated",
+                    MessageBoxButton.YesNo,
                     MessageBoxImage.Information);
 
                 if (result == MessageBoxResult.Yes)
@@ -1076,24 +1076,24 @@ namespace DatabaseMigrationTool
                         {
                             // Save settings to the selected file
                             File.WriteAllText(saveDialog.FileName, settings.ToString());
-                            
+
                             MessageBox.Show(
-                                $"Settings successfully saved to:\n{saveDialog.FileName}", 
-                                "Settings Saved", 
-                                MessageBoxButton.OK, 
+                                $"Settings successfully saved to:\n{saveDialog.FileName}",
+                                "Settings Saved",
+                                MessageBoxButton.OK,
                                 MessageBoxImage.Information);
-                                
+
                             LogMessage($"Migration settings saved to: {saveDialog.FileName}");
                         }
                     }
                     catch (Exception saveEx)
                     {
                         MessageBox.Show(
-                            $"Error saving file: {saveEx.Message}", 
-                            "Save Error", 
-                            MessageBoxButton.OK, 
+                            $"Error saving file: {saveEx.Message}",
+                            "Save Error",
+                            MessageBoxButton.OK,
                             MessageBoxImage.Error);
-                            
+
                         LogMessage($"Error saving settings file: {saveEx.Message}");
                     }
                 }
@@ -1200,10 +1200,10 @@ namespace DatabaseMigrationTool
             if (sender is TextBox searchBox)
             {
                 var searchTerm = searchBox.Text?.ToLower() ?? string.Empty;
-                
+
                 // Get the current target databases collection
                 ObservableCollection<TargetDatabase> databasesToFilter;
-                
+
                 if (_isDifferentServerMode && _differentServerDatabases != null)
                 {
                     databasesToFilter = _differentServerDatabases;
@@ -1212,7 +1212,7 @@ namespace DatabaseMigrationTool
                 {
                     databasesToFilter = _targetDatabases;
                 }
-                
+
                 // Filter and update the ListBox
                 if (string.IsNullOrWhiteSpace(searchTerm))
                 {
@@ -1225,7 +1225,7 @@ namespace DatabaseMigrationTool
                     var filteredDatabases = databasesToFilter
                         .Where(db => db.Name.ToLower().Contains(searchTerm))
                         .ToList();
-                    
+
                     lstTargetDatabases.ItemsSource = filteredDatabases;
                 }
             }
@@ -1246,7 +1246,7 @@ namespace DatabaseMigrationTool
         private void FullscreenTargetDatabases_Click(object sender, RoutedEventArgs e)
         {
             ObservableCollection<TargetDatabase> databasesToShow;
-            
+
             if (_isDifferentServerMode && _differentServerDatabases != null)
             {
                 databasesToShow = _differentServerDatabases;
@@ -1258,7 +1258,7 @@ namespace DatabaseMigrationTool
 
             var selectorWindow = new DatabaseSelectorWindow(databasesToShow);
             selectorWindow.Owner = this;
-            
+
             if (selectorWindow.ShowDialog() == true)
             {
                 // Update the original collection with the selections
@@ -1270,7 +1270,7 @@ namespace DatabaseMigrationTool
                 {
                     UpdateDatabaseSelections(_targetDatabases, selectorWindow.SelectedDatabases);
                 }
-                
+
                 // Update the count display
                 UpdateTargetDatabaseCount();
             }
@@ -1300,7 +1300,7 @@ namespace DatabaseMigrationTool
             if (_storedProceduresView != null)
             {
                 var searchText = txtSearchProcedures.Text?.ToLower() ?? string.Empty;
-                
+
                 if (string.IsNullOrEmpty(searchText))
                 {
                     _storedProceduresView.Filter = null;
@@ -1325,7 +1325,7 @@ namespace DatabaseMigrationTool
             if (_tablesView != null)
             {
                 var searchText = txtSearchTables.Text?.ToLower() ?? string.Empty;
-                
+
                 if (string.IsNullOrEmpty(searchText))
                 {
                     _tablesView.Filter = null;
@@ -1362,7 +1362,7 @@ namespace DatabaseMigrationTool
                 {
                     _rollbackHistory.Add(record);
                 }
-                
+
                 // Bind to the ListBox
                 if (lstRollbackHistory != null)
                 {
@@ -1406,7 +1406,7 @@ namespace DatabaseMigrationTool
             {
                 if (_rollbackHistory.Count == 0)
                 {
-                    MessageBox.Show("No rollback history available.", "No Rollback Data", 
+                    MessageBox.Show("No rollback history available.", "No Rollback Data",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
@@ -1433,7 +1433,7 @@ namespace DatabaseMigrationTool
                 var settings = GetCurrentConnectionSettings();
                 if (settings == null)
                 {
-                    MessageBox.Show("Please configure connection settings first.", "Connection Required", 
+                    MessageBox.Show("Please configure connection settings first.", "Connection Required",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
@@ -1443,17 +1443,17 @@ namespace DatabaseMigrationTool
                 if (rollbackResult.Success)
                 {
                     SetStatus("Rollback completed successfully");
-                    MessageBox.Show(rollbackResult.Message, "Rollback Successful", 
+                    MessageBox.Show(rollbackResult.Message, "Rollback Successful",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
                     SetStatus("Rollback completed with errors");
-                    var errorDetails = rollbackResult.Errors.Count > 0 
+                    var errorDetails = rollbackResult.Errors.Count > 0
                         ? "\n\nErrors:\n" + string.Join("\n", rollbackResult.Errors.Take(5))
                         : "";
-                    
-                    MessageBox.Show(rollbackResult.Message + errorDetails, "Rollback Issues", 
+
+                    MessageBox.Show(rollbackResult.Message + errorDetails, "Rollback Issues",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
 
@@ -1463,7 +1463,7 @@ namespace DatabaseMigrationTool
             catch (Exception ex)
             {
                 LogMessage($"Error during rollback: {ex.Message}");
-                MessageBox.Show($"Rollback failed: {ex.Message}", "Rollback Error", 
+                MessageBox.Show($"Rollback failed: {ex.Message}", "Rollback Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -1498,7 +1498,7 @@ namespace DatabaseMigrationTool
                     var settings = GetCurrentConnectionSettings();
                     if (settings == null)
                     {
-                        MessageBox.Show("Please configure connection settings first.", "Connection Required", 
+                        MessageBox.Show("Please configure connection settings first.", "Connection Required",
                             MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
@@ -1507,16 +1507,16 @@ namespace DatabaseMigrationTool
 
                     if (rollbackResult.Success)
                     {
-                        MessageBox.Show(rollbackResult.Message, "Rollback Successful", 
+                        MessageBox.Show(rollbackResult.Message, "Rollback Successful",
                             MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     else
                     {
-                        var errorDetails = rollbackResult.Errors.Count > 0 
+                        var errorDetails = rollbackResult.Errors.Count > 0
                             ? "\n\nFirst few errors:\n" + string.Join("\n", rollbackResult.Errors.Take(3))
                             : "";
-                        
-                        MessageBox.Show(rollbackResult.Message + errorDetails, "Rollback Issues", 
+
+                        MessageBox.Show(rollbackResult.Message + errorDetails, "Rollback Issues",
                             MessageBoxButton.OK, MessageBoxImage.Warning);
                     }
 
@@ -1526,7 +1526,7 @@ namespace DatabaseMigrationTool
             catch (Exception ex)
             {
                 LogMessage($"Error during item rollback: {ex.Message}");
-                MessageBox.Show($"Rollback failed: {ex.Message}", "Rollback Error", 
+                MessageBox.Show($"Rollback failed: {ex.Message}", "Rollback Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
@@ -1543,10 +1543,10 @@ namespace DatabaseMigrationTool
             try
             {
                 var recordCount = _rollbackHistory?.Count ?? 0;
-                
+
                 if (recordCount == 0)
                 {
-                    MessageBox.Show("No rollback history to clear.", "No History", 
+                    MessageBox.Show("No rollback history to clear.", "No History",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                     return;
                 }
@@ -1556,8 +1556,8 @@ namespace DatabaseMigrationTool
                     $"This will remove {recordCount} rollback record(s).\n" +
                     $"⚠️ This action cannot be undone!\n\n" +
                     $"Note: This only clears the history records, not the actual database backups.",
-                    "Confirm Clear History", 
-                    MessageBoxButton.YesNo, 
+                    "Confirm Clear History",
+                    MessageBoxButton.YesNo,
                     MessageBoxImage.Warning);
 
                 if (result != MessageBoxResult.Yes) return;
@@ -1572,9 +1572,9 @@ namespace DatabaseMigrationTool
 
                 SetStatus("Rollback history cleared");
                 MessageBox.Show(
-                    $"✓ Successfully cleared {recordCount} rollback record(s).", 
-                    "History Cleared", 
-                    MessageBoxButton.OK, 
+                    $"✓ Successfully cleared {recordCount} rollback record(s).",
+                    "History Cleared",
+                    MessageBoxButton.OK,
                     MessageBoxImage.Information);
 
                 LogMessage($"✓ Rollback history cleared successfully ({recordCount} records removed)");
@@ -1583,9 +1583,9 @@ namespace DatabaseMigrationTool
             catch (Exception ex)
             {
                 LogMessage($"✗ Error clearing rollback history: {ex.Message}");
-                MessageBox.Show($"Failed to clear rollback history: {ex.Message}", 
-                    "Clear Error", 
-                    MessageBoxButton.OK, 
+                MessageBox.Show($"Failed to clear rollback history: {ex.Message}",
+                    "Clear Error",
+                    MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 SetStatus("Ready");
             }
@@ -1619,14 +1619,42 @@ namespace DatabaseMigrationTool
                     try
                     {
                         LogMessage($"Opening definition viewer for: {item.FullName}");
-                        var viewerWindow = new StoredProcedureViewerWindow(item);
-                        viewerWindow.Owner = this;
+                        //var viewerWindow = new StoredProcedureViewerWindow(item);
+                        //viewerWindow.Owner = this;
+                        //viewerWindow.ShowDialog();
+
+                        var textblock = new TextBlock
+                        {
+                            Text = item.Definition,
+                            TextWrapping = TextWrapping.Wrap,
+                            Margin = new Thickness(10)
+                        };
+                        var scrollViewer = new ScrollViewer
+                        {
+                            Content = textblock,
+                            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto
+                        };
+
+                        var viewerWindow = new ChromelessWindow
+                        {
+                            Title = item.FullName,
+                            ShowIcon = false,
+                            Content = scrollViewer,
+                            Width = 800,
+                            Height = 600,
+                            ResizeMode = ResizeMode.NoResize,
+                            Owner = this,
+                            WindowStartupLocation = WindowStartupLocation.CenterOwner
+                        };
+
                         viewerWindow.ShowDialog();
+
                     }
                     catch (Exception ex)
                     {
                         LogMessage($"Error opening procedure definition: {ex.Message}");
-                        MessageBox.Show($"Error opening procedure definition: {ex.Message}", 
+                        MessageBox.Show($"Error opening procedure definition: {ex.Message}",
                                       "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 };
@@ -1648,7 +1676,7 @@ namespace DatabaseMigrationTool
                     catch (Exception ex)
                     {
                         LogMessage($"Error copying procedure name: {ex.Message}");
-                        MessageBox.Show($"Error copying to clipboard: {ex.Message}", 
+                        MessageBox.Show($"Error copying to clipboard: {ex.Message}",
                                       "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 };
@@ -1667,7 +1695,7 @@ namespace DatabaseMigrationTool
                     catch (Exception ex)
                     {
                         LogMessage($"Error copying procedure full name: {ex.Message}");
-                        MessageBox.Show($"Error copying to clipboard: {ex.Message}", 
+                        MessageBox.Show($"Error copying to clipboard: {ex.Message}",
                                       "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
                 };
