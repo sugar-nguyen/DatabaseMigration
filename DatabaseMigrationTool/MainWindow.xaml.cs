@@ -1596,6 +1596,32 @@ namespace DatabaseMigrationTool
         #region Context Menu Handlers
 
         /// <summary>
+        /// Opens Quick Migrate window
+        /// </summary>
+        private void QuickMigrate_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                LogMessage("=== OPENING QUICK MIGRATE ===");
+                LogMessage($"Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                LogMessage("");
+
+                var quickMigrateWindow = new QuickMigrateWindow();
+                quickMigrateWindow.Owner = this;
+                quickMigrateWindow.ShowDialog();
+
+                LogMessage("Quick Migrate window closed");
+                LogMessage("");
+            }
+            catch (Exception ex)
+            {
+                LogMessage($"✗ Error opening Quick Migrate: {ex.Message}");
+                MessageBox.Show($"Error opening Quick Migrate: {ex.Message}", 
+                              "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
         /// Creates and shows context menu for stored procedure items
         /// </summary>
         private void ListStoredProcedures_MouseRightButtonUp(object sender, MouseButtonEventArgs e)
