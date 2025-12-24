@@ -9,13 +9,13 @@
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
     <ApplicationIcon>app-icon.ico</ApplicationIcon>
     <AssemblyTitle>Database Migration Tool</AssemblyTitle>
-    <AssemblyName>DatabaseMigrationTool_v1.0.4</AssemblyName>
+    <AssemblyName>DatabaseMigrationTool_v2.2.0</AssemblyName>
     <AssemblyDescription>A tool for migrating stored procedures between SQL Server databases</AssemblyDescription>
     <AssemblyCompany>Database Migration Solutions</AssemblyCompany>
     <AssemblyProduct>Database Migration Tool</AssemblyProduct>
     <Copyright>Copyright © 2025</Copyright>
-    <AssemblyVersion>2.0</AssemblyVersion>
-    <FileVersion>2.0</FileVersion>
+    <AssemblyVersion>2.2.0.0</AssemblyVersion>
+    <FileVersion>2.2.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -37,6 +37,12 @@
 
   <ItemGroup>
     <Folder Include="Themes\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="key.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

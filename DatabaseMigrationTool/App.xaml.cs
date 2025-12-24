@@ -15,17 +15,26 @@ namespace DatabaseMigrationTool;
 /// </summary>
 public partial class App : Application
 {
+    private string _appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DatabaseMigrationTool");
+
     public App()
     {
         try
         {
-           // GenerateEncryptedLicenseParts();
             var licenseKey = GetLicenseKey();
             SyncfusionLicenseProvider.RegisterLicense(licenseKey);
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"License initialization failed: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            var result = MessageBox.Show($"License initialization failed, Press OK to generate new lisence.", "Error", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+            if (result == MessageBoxResult.Yes)
+            {
+                GenerateEncryptedLicenseParts();
+            }
+            else
+            {
+                Application.Current.Shutdown();
+            }
         }
     }
 
@@ -53,7 +62,7 @@ public partial class App : Application
     /// </summary>
     private string GetEncryptedPart1()
     {
-        return "AQAAANCMnd8BFdERjHoAwE/Cl+sBAAAAwiGE0PdxmEiLtWI7PVKdUQAAAAACAAAAAAAQZgAAAAEAACAAAABWxtmkEUZpCHq9ZOPDMzhkc0rb9HKT5Fh8RwIfGIkg7gAAAAAOgAAAAA";
+        return File.ReadAllText(Path.Combine(_appDataPath, "part1.txt"));
     }
 
     /// <summary>
@@ -61,7 +70,7 @@ public partial class App : Application
     /// </summary>
     private string GetEncryptedPart2()
     {
-        return "IAACAAAAAkD6X0ckkDOlqHH2c1FDLezLOIGakybECEFLBotjM/F2AAAADxatQxF+oFLmwJ+B2quDW4qN/BprHf0GQ61EDm5J554rWpLVUzA4GV1tRyM7EIOZd7ynagqFJKSZIm6IK7";
+        return File.ReadAllText(Path.Combine(_appDataPath, "part2.txt"));
     }
 
     /// <summary>
@@ -69,7 +78,7 @@ public partial class App : Application
     /// </summary>
     private string GetEncryptedPart3()
     {
-        return "Gk6grNmA32hl50c8ts3SoKhLVCXDEu8Si5JUU6qZL0TEIEhAAAAAMxkIoph3FzEwYayQ2aE3o02GlVW0PrDLfdVSSo6+I86stgCBBNCzwP6b0yd1AL/S0xsy/EHcvrDU1K7L6EW5cQ==";
+        return File.ReadAllText(Path.Combine(_appDataPath, "part3.txt"));
     }
 
     /// <summary>
@@ -185,9 +194,7 @@ public partial class App : Application
     /// </summary>
     private void GenerateEncryptedLicenseParts()
     {
-        // Your actual Syncfusion license key
-        var actualLicenseKey = "Ngo9BigBOggjHTQxAR8/V1JFaF5cXGRCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWH5cdnZUQ2heVEBzXERWYEg=";
-
+        var actualLicenseKey = File.ReadAllText(Path.Combine(Directory.GetCurrentDirectory(), "key.txt")).Trim();
         // Step 1: Obfuscate
         var obfuscated = ObfuscateString(actualLicenseKey);
 
@@ -200,18 +207,26 @@ public partial class App : Application
         var part2 = encrypted.Substring(length / 3, length / 3);
         var part3 = encrypted.Substring((length / 3) * 2);
 
-        // Output these values - you'll need to manually update the GetEncryptedPartX methods
-        //Console.WriteLine($"Part 1: {part1}");
-        //Console.WriteLine($"Part 2: {part2}");
-        //Console.WriteLine($"Part 3: {part3}");
-        //Console.WriteLine($"Full encrypted: {encrypted}");
-        var obj = new
+        var path1 = Path.Combine(_appDataPath, "part1.txt");
+        var path2 = Path.Combine(_appDataPath, "part2.txt");
+        var path3 = Path.Combine(_appDataPath, "part3.txt");
+
+        if (!Directory.Exists(_appDataPath))
         {
-            name = part1,
-            age = part2,
-            extra = part3,
-            full = encrypted
-        };
-        File.WriteAllText("EncryptedLicenseParts.json", JsonConvert.SerializeObject(obj));
+            Directory.CreateDirectory(_appDataPath);
+        }
+
+        File.WriteAllText(path1, part1);
+        File.WriteAllText(path2, part2);
+        File.WriteAllText(path3, part3);
+
+        if (MessageBox.Show($"Encrypted license parts generated, please reopen application!", "Info", MessageBoxButton.OK, MessageBoxImage.Information) == MessageBoxResult.OK)
+        {
+            if (!System.Diagnostics.Debugger.IsAttached)
+            {
+                File.Delete(Path.Combine(Directory.GetCurrentDirectory(), "key.txt"));
+            }
+            Application.Current.Shutdown();
+        }
     }
 }

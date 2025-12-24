@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -17,12 +18,14 @@ namespace DatabaseMigrationTool
         private readonly DatabaseService _databaseService;
         private readonly ConnectionSettingsService _connectionService;
         private string _currentScript = string.Empty;
+        private ObservableCollection<TargetDatabase> _targetDatabases;
 
         public QuickMigrateWindow()
         {
             InitializeComponent();
             _databaseService = new DatabaseService();
             _connectionService = new ConnectionSettingsService();
+            _targetDatabases = new ObservableCollection<TargetDatabase>();
             
             // Attach event handler after InitializeComponent to avoid null reference
             if (chkWindowsAuth != null)
@@ -316,7 +319,8 @@ namespace DatabaseMigrationTool
                     cmbServer.Text = currentServerName; // Restore the server name
                     
                     MessageBox.Show("Connection successful!", "Success",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
                 }
                 else
                 {
@@ -394,11 +398,14 @@ namespace DatabaseMigrationTool
 
                 var databases = await _databaseService.GetDatabasesAsync(settings);
 
-                cmbDatabase.Items.Clear();
+                _targetDatabases.Clear();
                 foreach (var db in databases)
                 {
-                    cmbDatabase.Items.Add(db);
+                    _targetDatabases.Add(new TargetDatabase { Name = db, IsSelected = false });
                 }
+
+                // Bind to ListBox
+                lstDatabases.ItemsSource = _targetDatabases;
 
                 LogMessage($"✓ Loaded {databases.Count} databases");
                 LogMessage("");
@@ -411,6 +418,7 @@ namespace DatabaseMigrationTool
                 LoadConnectionHistory();
                 cmbServer.Text = currentServerName; // Restore the server name
 
+                UpdateSelectedDatabaseCount();
                 UpdateExecuteButtonState();
             }
             catch (Exception ex)
@@ -419,6 +427,70 @@ namespace DatabaseMigrationTool
                 LogMessage("");
                 MessageBox.Show($"Error loading databases: {ex.Message}", "Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void DatabaseSearch_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            var searchText = txtDatabaseSearch.Text?.ToLower() ?? string.Empty;
+            
+            if (string.IsNullOrEmpty(searchText))
+            {
+                lstDatabases.ItemsSource = _targetDatabases;
+            }
+            else
+            {
+                var filtered = _targetDatabases.Where(db => db.Name.ToLower().Contains(searchText)).ToList();
+                lstDatabases.ItemsSource = filtered;
+            }
+        }
+
+        private void DatabaseCheckBox_Changed(object sender, RoutedEventArgs e)
+        {
+            UpdateSelectedDatabaseCount();
+            UpdateExecuteButtonState();
+        }
+
+        private void SelectAllDatabases_Checked(object sender, RoutedEventArgs e)
+        {
+            foreach (var db in _targetDatabases)
+            {
+                db.IsSelected = true;
+            }
+            UpdateSelectedDatabaseCount();
+            UpdateExecuteButtonState();
+        }
+
+        private void SelectAllDatabases_Unchecked(object sender, RoutedEventArgs e)
+        {
+            foreach (var db in _targetDatabases)
+            {
+                db.IsSelected = false;
+            }
+            UpdateSelectedDatabaseCount();
+            UpdateExecuteButtonState();
+        }
+
+        private void ClearAllDatabases_Click(object sender, RoutedEventArgs e)
+        {
+            if (_targetDatabases != null)
+            {
+                foreach (var db in _targetDatabases)
+                {
+                    db.IsSelected = false;
+                }
+                chkSelectAllDatabases.IsChecked = false;
+                UpdateSelectedDatabaseCount();
+                UpdateExecuteButtonState();
+            }
+        }
+
+        private void UpdateSelectedDatabaseCount()
+        {
+            if (_targetDatabases != null && txtSelectedDbCount != null)
+            {
+                var selectedCount = _targetDatabases.Count(db => db.IsSelected);
+                txtSelectedDbCount.Text = $"{selectedCount} selected";
             }
         }
 
@@ -441,9 +513,10 @@ namespace DatabaseMigrationTool
                     return;
                 }
 
-                if (cmbDatabase.SelectedItem == null)
+                var selectedDatabases = _targetDatabases?.Where(db => db.IsSelected).ToList();
+                if (selectedDatabases == null || !selectedDatabases.Any())
                 {
-                    MessageBox.Show("Please select a target database.", "No Database",
+                    MessageBox.Show("Please select at least one target database.", "No Database",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
@@ -458,8 +531,10 @@ namespace DatabaseMigrationTool
                 }
 
                 // Confirm execution
+                var databaseList = string.Join("\n  • ", selectedDatabases.Select(db => db.Name));
                 var result = MessageBox.Show(
-                    $"Execute script on database '{cmbDatabase.SelectedItem}'?\n\n" +
+                    $"Execute script on {selectedDatabases.Count} database(s)?\n\n" +
+                    $"Target Databases:\n  • {databaseList}\n\n" +
                     $"Type: {validation.ScriptType}\n" +
                     $"Procedure: {validation.ProcedureName}\n\n" +
                     $"⚠️ The script will be executed exactly as provided.",
@@ -470,39 +545,83 @@ namespace DatabaseMigrationTool
                 if (result != MessageBoxResult.Yes) return;
 
                 LogMessage("=== EXECUTING SCRIPT ===");
-                LogMessage($"Database: {cmbDatabase.SelectedItem}");
+                LogMessage($"Target Databases: {selectedDatabases.Count}");
+                foreach (var db in selectedDatabases)
+                {
+                    LogMessage($"  • {db.Name}");
+                }
                 LogMessage($"Procedure: {validation.ProcedureName}");
                 LogMessage($"Script Type: {validation.ScriptType}");
                 LogMessage("");
 
                 btnExecute.IsEnabled = false;
 
-                // Build connection settings
-                var settings = new ConnectionSettings
-                {
-                    ServerName = cmbServer.Text,
-                    DatabaseName = cmbDatabase.SelectedItem.ToString(),
-                    UseWindowsAuthentication = chkWindowsAuth.IsChecked == true,
-                    Username = txtUsername.Text,
-                    Password = txtPassword.Password
-                };
+                // Execute script on all selected databases
+                var successCount = 0;
+                var failCount = 0;
 
-                // Execute script as-is (no modification)
-                var success = await ExecuteScriptAsync(settings, _currentScript, validation);
-
-                if (success)
+                foreach (var targetDb in selectedDatabases)
                 {
-                    LogMessage("✓ Script executed successfully!");
+                    LogMessage($"→ Processing database: {targetDb.Name}");
+
+                    var settings = new ConnectionSettings
+                    {
+                        ServerName = cmbServer.Text,
+                        DatabaseName = targetDb.Name,
+                        UseWindowsAuthentication = chkWindowsAuth.IsChecked == true,
+                        Username = txtUsername.Text,
+                        Password = txtPassword.Password
+                    };
+
+                    try
+                    {
+                        var success = await ExecuteScriptAsync(settings, _currentScript, validation);
+                        if (success)
+                        {
+                            successCount++;
+                            LogMessage($"  ✓ {targetDb.Name}: Success");
+                        }
+                        else
+                        {
+                            failCount++;
+                            LogMessage($"  ✗ {targetDb.Name}: Failed");
+                        }
+                    }
+                    catch (Exception dbEx)
+                    {
+                        failCount++;
+                        LogMessage($"  ✗ {targetDb.Name}: {dbEx.Message}");
+                    }
+
                     LogMessage("");
-                    MessageBox.Show("Script executed successfully!", "Success",
-                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+
+                // Summary
+                LogMessage("=== EXECUTION SUMMARY ===");
+                LogMessage($"Total Databases: {selectedDatabases.Count}");
+                LogMessage($"Successful: {successCount}");
+                LogMessage($"Failed: {failCount}");
+                LogMessage($"Success Rate: {(selectedDatabases.Count > 0 ? (successCount * 100.0 / selectedDatabases.Count) : 0):F1}%");
+                LogMessage("");
+
+                if (failCount == 0)
+                {
+                    MessageBox.Show(
+                        $"✓ Script executed successfully on all {successCount} database(s)!",
+                        "Success",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
                 }
                 else
                 {
-                    LogMessage("✗ Script execution failed");
-                    LogMessage("");
-                    MessageBox.Show("Script execution failed. Check the log for details.", "Error",
-                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(
+                        $"Script execution completed:\n\n" +
+                        $"✓ Success: {successCount}\n" +
+                        $"✗ Failed: {failCount}\n\n" +
+                        $"Check the log for details.",
+                        "Execution Complete",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
@@ -591,9 +710,11 @@ namespace DatabaseMigrationTool
 
         private void UpdateExecuteButtonState()
         {
+            var hasSelectedDatabases = _targetDatabases?.Any(db => db.IsSelected) == true;
+            
             btnExecute.IsEnabled = !string.IsNullOrWhiteSpace(_currentScript) &&
                                   !string.IsNullOrWhiteSpace(cmbServer.Text) &&
-                                  cmbDatabase.SelectedItem != null;
+                                  hasSelectedDatabases;
         }
 
         private void LogMessage(string message)

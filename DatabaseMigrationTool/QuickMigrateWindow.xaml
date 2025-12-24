@@ -121,7 +121,7 @@
 
                     <!-- Script Editor -->
                     <Border Grid.Row="1" Background="#1E1E1E" BorderBrush="#3E3E42" BorderThickness="1" CornerRadius="4">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                        <ScrollViewer VerticalAlignment="Top" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                             <TextBox Name="txtScriptEditor" 
                                    Background="#1E1E1E"
                                    Foreground="White"
@@ -162,91 +162,131 @@
             <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" Background="#3E3E42"/>
 
             <!-- Right Panel - Connection & Execution -->
-            <Grid Grid.Column="2">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
+            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                <!-- Connection Panel -->
-                <GroupBox Grid.Row="0" Header="🔗 Connection" Padding="10" Margin="0,0,0,10">
-                    <StackPanel>
-                        <Label Content="Server Name" FontWeight="SemiBold" FontSize="11" Margin="0,0,0,5"/>
-                        <ComboBox Name="cmbServer" IsEditable="True" Height="30" Margin="0,0,0,10" 
-                                  SelectionChanged="Server_SelectionChanged"/>
+                    <!-- Connection Panel -->
+                    <GroupBox Grid.Row="0" Header="🔗 Connection" Padding="10" Margin="0,0,0,10">
+                        <StackPanel>
+                            <Label Content="Server Name" FontWeight="SemiBold" FontSize="11" Margin="0,0,0,5"/>
+                            <ComboBox Name="cmbServer" IsEditable="True" Height="30" Margin="0,0,0,10" 
+                                      SelectionChanged="Server_SelectionChanged"/>
 
-                        <CheckBox Name="chkWindowsAuth" Content="Windows Authentication" IsChecked="True" 
-                                FontSize="11" Margin="0,0,0,10"/>
+                            <CheckBox Name="chkWindowsAuth" Content="Windows Authentication" IsChecked="True" 
+                                    FontSize="11" Margin="0,0,0,10"/>
 
-                        <StackPanel Name="pnlSqlAuth" Visibility="Collapsed">
-                            <Label Content="Username" FontWeight="SemiBold" FontSize="11" Margin="0,0,0,5"/>
-                            <TextBox Name="txtUsername" Height="30" Margin="0,0,0,10"/>
-                            <Label Content="Password" FontWeight="SemiBold" FontSize="11" Margin="0,0,0,5"/>
-                            <PasswordBox Name="txtPassword" Height="30" Margin="0,0,0,10"/>
+                            <StackPanel Name="pnlSqlAuth" Visibility="Collapsed">
+                                <Label Content="Username" FontWeight="SemiBold" FontSize="11" Margin="0,0,0,5"/>
+                                <TextBox Name="txtUsername" Height="30" Margin="0,0,0,10"/>
+                                <Label Content="Password" FontWeight="SemiBold" FontSize="11" Margin="0,0,0,5"/>
+                                <PasswordBox Name="txtPassword" Height="30" Margin="0,0,0,10"/>
+                            </StackPanel>
+
+                            <syncfusion:ButtonAdv Name="btnTestConnection"
+                                                 Label="Test Connection"
+                                                 IconTemplate="{StaticResource TestConnectionIcon}"
+                                                 SizeMode="Normal"
+                                                 Click="TestConnection_Click"
+                                                 HorizontalAlignment="Stretch"
+                                                 Height="32"
+                                                 Margin="0,0,0,10"/>
+
+                            <syncfusion:ButtonAdv Name="btnLoadDatabases"
+                                                 Label="Load Databases"
+                                                 IconTemplate="{StaticResource DatabaseIcon}"
+                                                 SizeMode="Normal"
+                                                 Click="LoadDatabases_Click"
+                                                 HorizontalAlignment="Stretch"
+                                                 Height="32"/>
                         </StackPanel>
+                    </GroupBox>
 
-                        <syncfusion:ButtonAdv Name="btnTestConnection"
-                                             Label="Test Connection"
-                                             IconTemplate="{StaticResource TestConnectionIcon}"
-                                             SizeMode="Normal"
-                                             Click="TestConnection_Click"
-                                             HorizontalAlignment="Stretch"
-                                             Height="32"
-                                             Margin="0,0,0,10"/>
+                    <!-- Database Selection -->
+                    <GroupBox Grid.Row="1" Header="📂 Target Databases" Padding="10" Margin="0,0,0,10">
+                        <StackPanel>
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Label Grid.Column="0" Content="Select Databases" FontWeight="SemiBold" FontSize="11"/>
+                                <TextBlock Grid.Column="1" Name="txtSelectedDbCount" Text="0 selected" 
+                                         FontSize="10" Foreground="#999" VerticalAlignment="Center"/>
+                            </Grid>
 
-                        <syncfusion:ButtonAdv Name="btnLoadDatabases"
-                                             Label="Load Databases"
-                                             IconTemplate="{StaticResource DatabaseIcon}"
-                                             SizeMode="Normal"
-                                             Click="LoadDatabases_Click"
-                                             HorizontalAlignment="Stretch"
-                                             Height="32"/>
-                    </StackPanel>
-                </GroupBox>
+                            <TextBox Name="txtDatabaseSearch" Height="25" Margin="0,0,0,8"
+                                    TextChanged="DatabaseSearch_TextChanged"
+                                    FontSize="11"/>
 
-                <!-- Database Selection -->
-                <GroupBox Grid.Row="1" Header="📂 Target Database" Padding="10" Margin="0,0,0,10">
-                    <StackPanel>
-                        <Label Content="Select Database" FontWeight="SemiBold" FontSize="11" Margin="0,0,0,5"/>
-                        <ComboBox Name="cmbDatabase" Height="30" SelectionChanged="Database_SelectionChanged"/>
-                    </StackPanel>
-                </GroupBox>
+                            <ListBox Name="lstDatabases" Height="150" Margin="0,0,0,8">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" 
+                                                    Checked="DatabaseCheckBox_Changed" 
+                                                    Unchecked="DatabaseCheckBox_Changed" 
+                                                    VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <TextBlock Text="{Binding Name}" FontSize="11" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
 
-                <!-- Execution Panel -->
-                <GroupBox Grid.Row="2" Header="⚡ Execute" Padding="10">
-                    <StackPanel>
-                        <syncfusion:ButtonAdv Name="btnExecute"
-                                             Label="Execute Script"
-                                             IconTemplate="{StaticResource PlayIcon}"
-                                             SizeMode="Normal"
-                                             Click="ExecuteScript_Click"
-                                             HorizontalAlignment="Stretch"
-                                             Height="40"
-                                             Margin="0,0,0,15"
-                                             IsEnabled="False"/>
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox Name="chkSelectAllDatabases" Content="Select All" 
+                                        Checked="SelectAllDatabases_Checked" 
+                                        Unchecked="SelectAllDatabases_Unchecked" 
+                                        FontSize="11" Margin="0,0,10,0"/>
+                                <syncfusion:ButtonAdv Label="Clear" 
+                                                     IconTemplate="{StaticResource ClearIcon}"
+                                                     SizeMode="Small" 
+                                                     Click="ClearAllDatabases_Click" 
+                                                     Width="80" 
+                                                     Height="24"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </GroupBox>
 
-                        <!-- Execution Log -->
-                        <Label Content="Execution Log" FontWeight="SemiBold" FontSize="11" Margin="0,0,0,5"/>
-                        <Border Background="#1E1E1E" BorderBrush="#3E3E42" BorderThickness="1" CornerRadius="4" MinHeight="150">
-                            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                                <TextBox Name="txtExecutionLog"
-                                       IsReadOnly="True"
-                                       Background="Transparent"
-                                       Foreground="#CCCCCC"
-                                       FontFamily="Consolas"
-                                       FontSize="10"
-                                       AcceptsReturn="True"
-                                       TextWrapping="Wrap"
-                                       BorderThickness="0"
-                                       Padding="8"
-                                       VerticalScrollBarVisibility="Disabled"
-                                       HorizontalScrollBarVisibility="Disabled"/>
-                            </ScrollViewer>
-                        </Border>
-                    </StackPanel>
-                </GroupBox>
-            </Grid>
+                    <!-- Execution Panel -->
+                    <GroupBox Grid.Row="2" Header="⚡ Execute" Padding="10">
+                        <StackPanel>
+                            <syncfusion:ButtonAdv Name="btnExecute"
+                                                 Label="Execute Script"
+                                                 IconTemplate="{StaticResource PlayIcon}"
+                                                 SizeMode="Normal"
+                                                 Click="ExecuteScript_Click"
+                                                 HorizontalAlignment="Stretch"
+                                                 Height="40"
+                                                 Margin="0,0,0,15"
+                                                 IsEnabled="False"/>
+
+                            <!-- Execution Log -->
+                            <Label Content="Execution Log" FontWeight="SemiBold" FontSize="11" Margin="0,0,0,5"/>
+                            <Border Background="#1E1E1E" BorderBrush="#3E3E42" BorderThickness="1" CornerRadius="4" Height="250">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <TextBox Name="txtExecutionLog"
+                                           IsReadOnly="True"
+                                           Background="Transparent"
+                                           Foreground="#CCCCCC"
+                                           FontFamily="Consolas"
+                                           FontSize="10"
+                                           AcceptsReturn="True"
+                                           TextWrapping="Wrap"
+                                           BorderThickness="0"
+                                           Padding="8"
+                                           VerticalScrollBarVisibility="Disabled"
+                                           HorizontalScrollBarVisibility="Disabled"/>
+                                </ScrollViewer>
+                            </Border>
+                        </StackPanel>
+                    </GroupBox>
+                </Grid>
+            </ScrollViewer>
         </Grid>
 
         <!-- Footer -->
