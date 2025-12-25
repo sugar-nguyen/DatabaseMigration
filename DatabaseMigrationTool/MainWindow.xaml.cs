@@ -33,6 +33,7 @@ namespace DatabaseMigrationTool
         private bool _isDifferentServerMode = false;
         private ConnectionSettings? _differentServerSettings;
         private ObservableCollection<TargetDatabase>? _differentServerDatabases;
+        private ConnectionSettings? _currentConnection;
 
         public MainWindow()
         {
@@ -163,6 +164,7 @@ namespace DatabaseMigrationTool
                     var currentServerName = cmbServer.Text;
                     LoadConnectionHistory();
                     cmbServer.Text = currentServerName; // Restore the server name
+                    _currentConnection = settings;
 
                     MessageBox.Show("Connection successful!", "Connection Test",
                                    MessageBoxButton.OK, MessageBoxImage.Information);
@@ -229,6 +231,7 @@ namespace DatabaseMigrationTool
                 var currentServerName = cmbServer.Text;
                 LoadConnectionHistory();
                 cmbServer.Text = currentServerName; // Restore the server name
+                _currentConnection = settings;
 
                 SetStatus($"Loaded {databases.Count} databases");
                 LogMessage($"✓ Successfully loaded {databases.Count} databases");
@@ -331,6 +334,13 @@ namespace DatabaseMigrationTool
 
         private void DifferentServer_Click(object sender, RoutedEventArgs e)
         {
+            //check if connection was connection first
+            if (_currentConnection == null)
+            {
+                MessageBox.Show("Please connect source connection first.", "No Connection Found", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             var differentServerWindow = new DifferentServerConnectionWindow();
             differentServerWindow.Owner = this;
 
