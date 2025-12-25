@@ -10,7 +10,7 @@
         ResizeMode="NoResize"
         MinHeight="400" MinWidth="400"
         Icon="app-icon.png">
-    
+
     <syncfusion:ChromelessWindow.Resources>
         <!-- Icon Templates -->
 
@@ -65,7 +65,7 @@
         </DataTemplate>
 
     </syncfusion:ChromelessWindow.Resources>
-    
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -108,18 +108,18 @@
                     <TextBox Name="txtSearch" 
                             Height="30"
                             FontSize="12"
-                            Padding="8"
+                            Padding="8 0"
                             VerticalContentAlignment="Center"
                             TextChanged="SearchTextBox_TextChanged"/>
-                    
+
                     <!-- Placeholder text -->
                     <TextBlock Text="Type to search databases..." 
                               FontSize="11"
                               Foreground="#808080"
                               VerticalAlignment="Center"
                               HorizontalAlignment="Left"
-                              Margin="10,0,0,0"
-                              IsHitTestVisible="False">
+                              Margin="8,0,0,0"
+                              IsHitTestVisible="true">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -140,7 +140,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                
+
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
                     <CheckBox Name="chkSelectAll" 
                              Content="Select All Visible" 
@@ -155,7 +155,7 @@
                                          Margin="10,0,0,0"
                                          Width="100" Height="28"/>
                 </StackPanel>
-                
+
                 <Border Grid.Column="1" Background="#3E3E42" CornerRadius="12" Padding="8,4">
                     <TextBlock Name="txtSelectionCount" 
                               Text="0 selected" 
@@ -182,6 +182,8 @@
                                          Unchecked="DatabaseCheckBox_Changed"
                                          VerticalAlignment="Center"
                                          Margin="0,0,8,0"/>
+                                <ContentControl ContentTemplate="{StaticResource DatabaseIcon}" 
+     VerticalAlignment="Center" Margin="0,0,6,0"/>
                                 <TextBlock Text="{Binding Name}" 
                                           FontSize="11"
                                           VerticalAlignment="Center"/>

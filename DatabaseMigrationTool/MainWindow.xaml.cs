@@ -59,6 +59,7 @@ namespace DatabaseMigrationTool
             // Initialize Migration Log after the window is loaded
             this.Loaded += MainWindow_Loaded;
             tblVersion.Text = $"Version {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}";
+            txtSubVersion.Text = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version.ToString();
         }
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -1616,7 +1617,7 @@ namespace DatabaseMigrationTool
             catch (Exception ex)
             {
                 LogMessage($"✗ Error opening Quick Migrate: {ex.Message}");
-                MessageBox.Show($"Error opening Quick Migrate: {ex.Message}", 
+                MessageBox.Show($"Error opening Quick Migrate: {ex.Message}",
                               "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

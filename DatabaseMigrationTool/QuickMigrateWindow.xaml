@@ -231,6 +231,8 @@
                                                     Checked="DatabaseCheckBox_Changed" 
                                                     Unchecked="DatabaseCheckBox_Changed" 
                                                     VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <ContentControl ContentTemplate="{StaticResource DatabaseIcon}" 
+                                                          VerticalAlignment="Center" Margin="0,0,6,0"/>
                                             <TextBlock Text="{Binding Name}" FontSize="11" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </DataTemplate>
