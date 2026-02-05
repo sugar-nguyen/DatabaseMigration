@@ -200,28 +200,18 @@ namespace DatabaseMigrationTool
 
             try
             {
-                // Remove comments and normalize whitespace
-                script = Regex.Replace(script, @"--.*$", "", RegexOptions.Multiline);
-                script = Regex.Replace(script, @"/\*.*?\*/", "", RegexOptions.Singleline);
-                script = script.Trim();
+                // Remove comments but keep the script structure
+                var cleanedScript = Regex.Replace(script, @"--.*$", "", RegexOptions.Multiline);
+                cleanedScript = Regex.Replace(cleanedScript, @"/\*.*?\*/", "", RegexOptions.Singleline);
+                cleanedScript = cleanedScript.Trim();
 
-                // Check for dangerous keywords
-                var dangerousKeywords = new[] { "DROP", "DELETE", "TRUNCATE", "INSERT", "UPDATE" };
-                foreach (var keyword in dangerousKeywords)
-                {
-                    if (Regex.IsMatch(script, $@"\b{keyword}\b", RegexOptions.IgnoreCase))
-                    {
-                        result.ErrorMessage = $"Script contains forbidden keyword: {keyword}. Only CREATE/ALTER PROCEDURE allowed.";
-                        return result;
-                    }
-                }
-
-                // Check for CREATE PROCEDURE
-                var createMatch = Regex.Match(script, @"CREATE\s+(?:PROCEDURE|PROC)\s+(?:\[?(\w+)\]?\.)?\[?(\w+)\]?",
+                // Check for CREATE PROCEDURE or ALTER PROCEDURE at the beginning
+                var createMatch = Regex.Match(cleanedScript, 
+                    @"^\s*CREATE\s+(?:PROCEDURE|PROC)\s+(?:\[?(\w+)\]?\.)?\[?(\w+)\]?",
                     RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
-                // Check for ALTER PROCEDURE
-                var alterMatch = Regex.Match(script, @"ALTER\s+(?:PROCEDURE|PROC)\s+(?:\[?(\w+)\]?\.)?\[?(\w+)\]?",
+                var alterMatch = Regex.Match(cleanedScript, 
+                    @"^\s*ALTER\s+(?:PROCEDURE|PROC)\s+(?:\[?(\w+)\]?\.)?\[?(\w+)\]?",
                     RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
                 if (createMatch.Success)
@@ -246,12 +236,53 @@ namespace DatabaseMigrationTool
                 }
                 else
                 {
-                    result.ErrorMessage = "Script must contain CREATE PROCEDURE or ALTER PROCEDURE statement.";
+                    result.ErrorMessage = "Script must start with CREATE PROCEDURE or ALTER PROCEDURE statement.";
+                    return result;
                 }
+
+                // Additional validation: Check for dangerous DDL operations at script level (not inside procedure body)
+                // Only check before the AS keyword (procedure definition)
+                var procedureHeaderMatch = Regex.Match(cleanedScript, 
+                    @"(?:CREATE|ALTER)\s+(?:PROCEDURE|PROC)\s+.*?\s+AS\s+",
+                    RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+                if (procedureHeaderMatch.Success)
+                {
+                    // Get only the header part (before AS)
+                    var headerPart = cleanedScript.Substring(0, procedureHeaderMatch.Index + procedureHeaderMatch.Length);
+
+                    // Check for dangerous DDL keywords in header only
+                    var dangerousDDLKeywords = new[] { "DROP DATABASE", "DROP TABLE", "TRUNCATE DATABASE" };
+                    foreach (var keyword in dangerousDDLKeywords)
+                    {
+                        if (Regex.IsMatch(headerPart, $@"\b{keyword}\b", RegexOptions.IgnoreCase))
+                        {
+                            result.IsValid = false;
+                            result.ErrorMessage = $"Script contains forbidden DDL operation: {keyword}. Only stored procedure definitions are allowed.";
+                            return result;
+                        }
+                    }
+                }
+
+                // Warn if script contains multiple statements (possible SQL injection or unsafe batch)
+                var procedureCount = Regex.Matches(cleanedScript, 
+                    @"\b(?:CREATE|ALTER)\s+(?:PROCEDURE|PROC)\b", 
+                    RegexOptions.IgnoreCase).Count;
+
+                if (procedureCount > 1)
+                {
+                    result.ErrorMessage = "Script contains multiple CREATE/ALTER PROCEDURE statements. Only one procedure per script is allowed.";
+                    result.IsValid = false;
+                    return result;
+                }
+
+                // Validation passed
+                result.IsValid = true;
             }
             catch (Exception ex)
             {
                 result.ErrorMessage = $"Validation error: {ex.Message}";
+                result.IsValid = false;
             }
 
             return result;

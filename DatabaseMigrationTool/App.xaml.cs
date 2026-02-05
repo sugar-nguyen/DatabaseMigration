@@ -7,6 +7,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Windows;
 using System.Windows.Input;
+using System.Threading;
 
 namespace DatabaseMigrationTool;
 
@@ -16,9 +17,24 @@ namespace DatabaseMigrationTool;
 public partial class App : Application
 {
     private string _appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DatabaseMigrationTool");
+    private static Mutex? _instanceMutex;
+    private const string MutexName = "Global\\DatabaseMigrationTool_SingleInstance_Mutex_{B7D8F9C2-4E1A-4D3B-8F2E-9C5A6B3D7E8F}";
 
     public App()
     {
+        // Check for single instance before anything else
+        if (!EnsureSingleInstance())
+        {
+            MessageBox.Show(
+                "Database Migration Tool is already running.\n\nOnly one instance of the application can run at a time.",
+                "Application Already Running",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            
+            Application.Current.Shutdown();
+            return;
+        }
+
         try
         {
             var licenseKey = GetLicenseKey();
@@ -36,6 +52,64 @@ public partial class App : Application
                 Application.Current.Shutdown();
             }
         }
+    }
+
+    /// <summary>
+    /// Ensures only one instance of the application can run at a time
+    /// </summary>
+    /// <returns>True if this is the only instance, False otherwise</returns>
+    private bool EnsureSingleInstance()
+    {
+        bool createdNew;
+        
+        try
+        {
+            _instanceMutex = new Mutex(true, MutexName, out createdNew);
+            
+            if (!createdNew)
+            {
+                // Another instance is already running
+                return false;
+            }
+
+            // This is the first instance, register cleanup on exit
+            this.Exit += (sender, args) =>
+            {
+                if (_instanceMutex != null)
+                {
+                    _instanceMutex.ReleaseMutex();
+                    _instanceMutex.Dispose();
+                    _instanceMutex = null;
+                }
+            };
+
+            return true;
+        }
+        catch (Exception)
+        {
+            // If mutex creation fails for any reason, allow the app to continue
+            // (better than blocking legitimate use)
+            return true;
+        }
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        // Clean up mutex when application exits
+        if (_instanceMutex != null)
+        {
+            try
+            {
+                _instanceMutex.ReleaseMutex();
+                _instanceMutex.Dispose();
+            }
+            catch
+            {
+                // Ignore errors during cleanup
+            }
+        }
+
+        base.OnExit(e);
     }
 
     /// <summary>
